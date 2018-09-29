@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+		
+		<style type="text/css">
+			#fm,#fm_passxg{
+				margin:0;
+				padding:10px 30px;
+			}
+			.ftitle{
+				font-size:14px;
+				font-weight:bold;
+				color:#666;
+				padding:5px 0;
+				margin-bottom:10px;
+				border-bottom:1px solid #ccc;
+			}
+			.fitem{
+				margin-bottom:5px;
+			}
+			.fitem label{
+				display:inline-block;
+				width:80px;
+			}
+		</style>
+	<script type="text/javascript">
+	$(document).ready(function(){
+		$('#dg').edatagrid({
+		    url:'Servlet_FuHeZhiBiaoGuanLi_DG', 
+		    saveUrl: 'ServletFuHeZhiBiao_save',
+			updateUrl: 'ServletFuHeZhiBiao_Update',
+			destroyUrl: 'ServletFuHeZhiBiao_Delete',
+			onSave:function(index, row){
+				$('#dg').edatagrid('reload');
+				$.messager.show({
+					msg:'保存成功',
+				})
+			},
+			onError:function(index,row){
+				$.messager.show({
+					msg:'保存错误'+ row.msg,
+				})
+			},
+			columns:[[
+						{field:'fhzb_id', title:'复合指标id',align:'center',
+								styler: function(value,row,index){
+										return 'border-style:solid;border-color:black;';
+								}
+						},
+						{field:'pxid', title:'排序号',align:'center',
+							styler: function(value,row,index){
+									return 'border-style:solid;border-color:black;';
+							},
+							editor:{type:'numberbox',options:{required:true}}
+						},
+				  		{field:'fhzb_name', title:'复合指标名称',align:'center',
+				  			styler: function(value,row,index){
+				  					return 'border-style:solid;border-color:black;';
+				  			},
+				  			editor:{type:'validatebox',options:{required:true}}
+				  		},
+				  		{field:'fhzb_bh', title:'复合指标编号',align:'center',
+				  			styler: function(value,row,index){
+				  					return 'border-style:solid;border-color:black;';
+				  			},
+				  			editor:{type:'validatebox',options:{required:true}}
+				  		},
+				  		{field:'fhzb_math', title:'复合指标公式',align:'center',
+				  			styler: function(value,row,index){
+				  					return 'border-style:solid;border-color:black;';
+				  			}
+						},
+				  		{field:'xsws', title:'小数位数',align:'center',
+				  			styler: function(value,row,index){
+				  					return 'border-style:solid;border-color:black;';
+				  			},
+				  			editor:{type:'numberbox',options:{required:true}}
+				  		}
+				  	]]
+		});  
+	})
+	
+	/* 公式指标来源选择 */
+	function fh_zbly(){
+		try {
+			var fhzb_id = $('#dg').datagrid("getSelected").fhzb_id//复合指标id
+			$('#dlg_xz_zhibiaolaiyuan').dialog('open').dialog('setTitle','选择公式指标来源');
+			$('#sczb_dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+			$('#dg_xz_zhibiaolaiyuan').edatagrid({//选择的指标表
+				url:'Servlet_FHZB_LaiYuan_DG?fhzb_id='+fhzb_id, 
+			    saveUrl: 'Servlet_FHZB_LaiYuan_Save',
+				updateUrl: 'Servlet_FHZB_LaiYuan_Update',
+				destroyUrl: 'Servlet_FHZB_LaiYuan_Delete',
+				columns:[[
+							{field:'id', title:'id',align:'center',width:15,hidden:true},
+							{field:'fhzb_id', title:'复合id',align:'center',width:15,hidden:true},
+							{field:'xmid', title:'项目id',align:'center',width:15,hidden:true},
+							{field:'xm_name', title:'项目名称',align:'center',width:30},
+							{field:'sc_name', title:'输出指标名称',align:'center',width:30},
+							{field:'sc_bh', title:'输出指标编号',align:'center',width:30},
+							{field:'laiyuan_name', title:'来源指标名称',align:'center',width:30,hidden:true},
+							{field:'zhbc', title:'滞后班次',align:'center',width:15,editor:{type:'numberbox',options:{required:true}}}
+				          ]],
+				onSave:function(index, row){
+					$('#dg_xz_zhibiaolaiyuan').edatagrid('reload');
+				},
+			})
+		}catch (e) {
+			$.messager.show({
+				msg:'必须选择一条复合指标。'
+			})
+		}
+		
+		
+		$("#tree_xz_zhibiaolaiyuan").tree({//项目列表
+			url:"ServletXMLB_Tree",
+			onLoadSuccess: function () {$(this).tree('collapseAll')},//加载完毕后关闭所有节点
+			onSelect: function(node){//单击节点运行
+				if ($(this).tree('isLeaf',node.target)) {//判断节点是否为叶子节点
+					var xmid = node.id;
+					$("#sczb_dg").edatagrid({
+						url:"ServletXm_ScCx?xmid="+xmid,
+						columns:[[
+									{field:'xmid', title:'项目id',align:'center',width:15,hidden:true},
+									{field:'zb_name', title:'指标名称',align:'center',width:40},
+									{field:'zbbh', title:'指标编号',align:'center',width:40},
+						          ]],
+						onSelect:function(index, row){
+							var fhzb_id = $('#dg').datagrid("getSelected").fhzb_id//复合指标id
+							var xmid = row.xmid;
+							var xm_name = node.text;
+							var zb_name = row.zb_name;
+							var zbbh = row.zbbh;
+							var laiyuan_name = xm_name+"("+zbbh+")";
+							//根据选择新建一条新行并填入数据
+							$('#dg_xz_zhibiaolaiyuan').edatagrid('addRow',{
+								row:{
+									fhzb_id: fhzb_id,
+									xmid: xmid,
+									xm_name: xm_name,
+									sc_name: zb_name,
+									sc_bh: zbbh,
+									laiyuan_name: laiyuan_name
+								}
+							});
+							$('#dg_xz_zhibiaolaiyuan').edatagrid('enableEditing');
+						}
+					})
+				}else{
+					$(this).tree('toggle',node.target);//打开节点
+				}
+			
+			}
+		})
+	}
+	
+	/* 定义复合公式 */
+	function fh_math(){
+		var value = $('#dg').datagrid('getSelected').fhzb_math;//获取选择的复合指标公式
+		if (value == undefined) {
+			value = "";
+		}
+		$('#math').val(value);//设置公式文本框的值
+		$('#dlg_math').dialog('open').dialog('setTitle','设置复合公式');
+		$('#math').focus();//文本框获得焦点
+		var fhzb_id = $('#dg').datagrid("getSelected").fhzb_id//复合指标id
+		$('#math_dg').edatagrid({//选择的指标表
+			url:'Servlet_FHZB_LaiYuan_DG?fhzb_id='+fhzb_id, 
+			columns:[[
+			          {field:'laiyuan_name', title:'来源指标名称', width:10, align:'center'},
+			          {field:'zhbc', title:'滞后班次', width:10, align:'center',hidden:true}
+			          ]],
+			onClickRow:function(rowIndex,rowData){//点击项目指标表中的一行，把输入指标添入文本框
+				/* JS在文本域光标位置插入文本 */
+				var myField =document.getElementById('math');
+				var myValue = rowData.laiyuan_name;//需要插入的值
+				if (myField.selectionStart || myField.selectionStart == '0') {  
+				     var startPos = myField.selectionStart;  
+				     var endPos = myField.selectionEnd;  
+				  
+				     // 保存滚动条  
+				     var restoreTop = myField.scrollTop;  
+				     myField.value = myField.value.substring(0, startPos) + myValue + myField.value.substring(endPos, myField.value.length);  
+				       
+				     if (restoreTop > 0) {  
+				        myField.scrollTop = restoreTop;  
+				     }  
+				       
+				     myField.focus();  
+				     myField.selectionStart = startPos + myValue.length;  
+				     myField.selectionEnd = startPos + myValue.length;  
+				 }
+			}
+		})
+		$('#mathxt_dg').edatagrid({//相同公式表
+			url:'Servlet_FuHeZhiBiaoGuanLi_DG',
+			columns:[[
+						{field:'fhzb_name', title:'复合指标名称',align:'center',width:15},
+						{field:'fhzb_math', title:'复合指标公式',align:'center',width:40}
+			          ]]
+		})
+	}
+	
+	function avgStart() {//平均开始
+		/* JS在文本域光标位置插入文本 */
+		var myField =document.getElementById('math');
+		var myValue = "avg(";//需要插入的值
+		if (myField.selectionStart || myField.selectionStart == '0') { 
+		     var startPos = myField.selectionStart;  
+		     var endPos = myField.selectionEnd;  
+		  
+		     // 保存滚动条  
+		     var restoreTop = myField.scrollTop;  
+		     myField.value = myField.value.substring(0, startPos) + myValue + myField.value.substring(endPos, myField.value.length);  
+		       
+		     if (restoreTop > 0) {  
+		        myField.scrollTop = restoreTop;  
+		     }  
+		       
+		     myField.focus();  
+		     myField.selectionStart = startPos + myValue.length;  
+		     myField.selectionEnd = startPos + myValue.length;
+		}
+	}
+	function avgComma() {//平均中的逗号
+		/* JS在文本域光标位置插入文本 */
+		var myField =document.getElementById('math');
+		var myValue = ",";//需要插入的值
+		if (myField.selectionStart || myField.selectionStart == '0') { 
+		     var startPos = myField.selectionStart;  
+		     var endPos = myField.selectionEnd;  
+		  
+		     // 保存滚动条  
+		     var restoreTop = myField.scrollTop;  
+		     myField.value = myField.value.substring(0, startPos) + myValue + myField.value.substring(endPos, myField.value.length);  
+		       
+		     if (restoreTop > 0) {  
+		        myField.scrollTop = restoreTop;  
+		     }  
+		       
+		     myField.focus();  
+		     myField.selectionStart = startPos + myValue.length;  
+		     myField.selectionEnd = startPos + myValue.length;
+		}
+	}
+	function avgEnd() {//平均结束
+		/* JS在文本域光标位置插入文本 */
+		var myField =document.getElementById('math');
+		var myValue = ")";//需要插入的值
+		if (myField.selectionStart || myField.selectionStart == '0') { 
+		     var startPos = myField.selectionStart;  
+		     var endPos = myField.selectionEnd;  
+		  
+		     // 保存滚动条  
+		     var restoreTop = myField.scrollTop;  
+		     myField.value = myField.value.substring(0, startPos) + myValue + myField.value.substring(endPos, myField.value.length);  
+		       
+		     if (restoreTop > 0) {  
+		        myField.scrollTop = restoreTop;  
+		     }  
+		       
+		     myField.focus();  
+		     myField.selectionStart = startPos + myValue.length;  
+		     myField.selectionEnd = startPos + myValue.length;
+		}
+	}
+	function save_math() {//复合公式设定完毕后保存
+		var fhzb_id = $('#dg').datagrid("getSelected").fhzb_id//复合指标id
+		var fuhezb_math = $('#math').val();//获得公式文本框中的值
+		$.ajax({//查询输入指标
+			type:"post",
+			url:"ServletFuHeZhiBiao_Math_Save",
+			async:true,
+			dataType: "json",
+			data:{fhzb_id:fhzb_id,fuhezb_math:fuhezb_math},
+			success:function(data) {
+				if (data) {
+					$.messager.alert('提示','保存成功');
+					$('#dlg_math').dialog('close');
+					$('#dlg_xz_zhibiaolaiyuan').dialog('close');
+					$('#dg').edatagrid("reload");
+				} else {
+					$.messager.alert('警告','保存失败');
+				}
+			},
+			error:function(XMLHttpRequest,textStatus,errorThrown){
+				alert(XMLHttpRequest.status);
+				alert(XMLHttpRequest.readyState);
+				alert(textStatus);
+			}
+		});
+	}
+	</script>
+	</head>
+	<body>
+		<!--复合指标管理表  -->
+		<table id="dg" class="easyui-datagrid" style="width:auto;height:auto;"
+				data-options=" fit:'true', singleSelect:'true',toolbar:'#toolbar',idField:'fhzb_id'">
+		</table>
+		<!--表工具  -->
+		<div id="toolbar">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#dg').edatagrid('addRow')">新建</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#dg').edatagrid('saveRow')">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#dg').edatagrid('destroyRow')">删除</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#dg').edatagrid('cancelRow')">取消</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-mini-add" plain="true" onclick="fh_zbly()">公式定义</a>
+		</div>
+		
+		
+		<!--选择来源指标  -->
+		<div id="dlg_xz_zhibiaolaiyuan" class="easyui-dialog" style="width:800px;height:500px;"
+				 buttons="#dlg-buttons" closed="true">
+				 
+			<div class="easyui-layout" data-options="fit:true">
+				<div data-options="region:'west',title:'选择车间',collapsible:false" style="width:200px;">
+					<!-- 树 -->
+					<ul id="tree_xz_zhibiaolaiyuan" class="easyui-tree" style="padding: 5px;width:auto;height:auto;"></ul>
+				</div>
+				<div data-options="region:'center',title:'选择指标',collapsible:false" style="width:200px;">
+					<!-- 输出指标表 -->
+					<table id="sczb_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'east', collapsible:false" style="width:400px;">
+					<!-- 复合来源指标表 -->
+					<table id="dg_xz_zhibiaolaiyuan" class="easyui-datagrid" style="width:auto;height:auto;" idField="id"
+						data-options=" fit:'true', fitColumns:true, scrollbarSize:0, singleSelect:'true',toolbar:'#tb_xz_zhibiaolaiyuan'">
+					</table>
+					<!--表工具  -->
+					<div id="tb_xz_zhibiaolaiyuan">
+						<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#dg_xz_zhibiaolaiyuan').edatagrid('saveRow')">保存</a>
+						<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#dg_xz_zhibiaolaiyuan').edatagrid('destroyRow')">删除</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="fh_math()">公式定义</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_xz_zhibiaolaiyuan').dialog('close')">取消</a>
+		</div>
+		
+		
+		<!--复合公式定制对话框  -->
+		<div id="dlg_math" class="easyui-dialog" style="width:800px;height:500px;"
+				 buttons="#dlg-math-buttons" closed="true">
+			 <div class="easyui-layout" data-options="fit:true" style="height: 100%;">
+				<div data-options="region:'west',title:'项目指标',collapsible:false" style="width:120px;">
+					<!--公式对话框中的输入指标，获取输入指标-->
+					<table id="math_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:false,scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'center',title:'设置平均'" style="width:120px;">
+					<div style="margin-top: 15px;" align="center"><a href="#" class="easyui-linkbutton" onclick="avgStart()">平均开始</a></div>
+					<div style="margin-top: 15px;" align="center"><a href="#" class="easyui-linkbutton" data-options="width:'57px'" onclick="avgComma()">,</a></div>
+					<div style="margin-top: 15px;" align="center"><a href="#" class="easyui-linkbutton" onclick="avgEnd()">平均结束</a></div>
+				</div>
+				<div data-options="region:'east',title:'相同公式',collapsible:false" style="width:540px;">
+					<!--公式对话框中的相同公式-->
+					<table id="mathxt_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:true,scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'south',border:false" style="height:80px;">
+					<div class="easyui-panel" title="计算公式" data-options="fit:true,border:false">
+						<input type="text" id="math" size="60" style="height: 97%;width: 100%;font-size: 18px;overflow: auto;border: 0px;">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="dlg-math-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="save_math()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_math').dialog('close')">取消</a>
+		</div>
+		
+		
+	</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+
+	<script type="text/javascript">
+	$(document).ready(function(){
+		function myformatter(date){//日期格式化
+    		    var y = date.getFullYear();  
+    		    var m = date.getMonth()+1;  
+    		    var d = date.getDate();  
+    		    return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);  
+    		}
+    	function myparser(s){  
+    		    //if (!s) return new Date($.ajax({async: false}).getResponseHeader("Date"));  
+    			if (!s) return new Date();
+    		    var ss = (s.split('-'));  
+    		    var y = parseInt(ss[0],10);  
+    		    var m = parseInt(ss[1],10);  
+    		    var d = parseInt(ss[2],10);  
+    		    if (!isNaN(y) && !isNaN(m) && !isNaN(d)){  
+    		        return new Date(y,m-1,d);  
+    		    } else {  
+    		        return new Date();  
+    		    }  
+    		}
+    	var dq_date = myformatter(new Date($.ajax({async: false}).getResponseHeader("Date")));//获得服务器时间
+    	$("#sjlr_datebox").datebox("setValue",dq_date);//日期控件默认服务器当前日期
+	})
+	
+	
+	function chaxun(){//查询按钮方法
+		var date = $('#sjlr_datebox').datebox('getValue');//获得当前选择的日期字符串
+		$('#dg').datagrid({    
+		    url:'ServletDD_RiBao_BieMian?hysj_date='+date, 
+		    
+			columns:[[
+			  		{field:'xmzb1', title:'项目指标', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'guiding1', title:'规定', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+					},
+			  		{field:'lingdian1', title:'零点', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'baiban1', title:'白班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'zhongban1', title:'中班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'riping1', title:'日平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'leiping1', title:'累平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'xmzb2', title:'项目指标', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'guiding2', title:'规定', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'lingdian2', title:'零点', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'baiban2', title:'白班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'zhongban2', title:'中班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'riping2', title:'日平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'leiping2', title:'累平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'xmzb3', title:'项目指标', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'guiding3', title:'规定', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'lingdian3', title:'零点', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'baiban3', title:'白班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'zhongban3', title:'中班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'riping3', title:'日平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'leiping3', title:'累平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'xmzb4', title:'项目指标', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'guiding4', title:'规定', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'lingdian4', title:'零点', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'baiban4', title:'白班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'zhongban4', title:'中班', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'riping4', title:'日平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		{field:'leiping4', title:'累平', align:'center',
+			  			styler: function(value,row,index){
+			  					return 'border-style:solid;border-color:black;';
+			  			}
+			  		},
+			  		
+			  	]]
+
+		});  
+
+	}
+	</script>
+	</head>
+	<body>
+		<!--用户表  -->
+		<table id="dg" class="easyui-datagrid" style="width:auto;height:auto;"
+				data-options=" fit:'true', singleSelect:'true',toolbar:'#toolbar'">
+		</table>
+		<!--表工具  -->
+		<div id="toolbar">
+			<label style="margin-left: 10px;">化验时间：</label>
+			<input id="sjlr_datebox" type="text" class="easyui-datebox" required="required" 
+								style="width: 100px;" data-options="editable: false">
+			<a id="chaxun_btn" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" href="#" onclick="chaxun()">查询</a>
+			<a id="print" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" href="javascript:void(0);" onclick="CreateFormPage('测试', $('#dg'),'调度日报背面');">打印</a>
+		</div>
+	</body>
+	<script type="text/javascript">
+	// strPrintName 打印任务名
+	// printDatagrid 要打印的datagrid
+	//title 表格标题
+	function CreateFormPage(strPrintName, printDatagrid,title) {
+	    var tableString = '<table cellspacing="0" class="pb">';
+	    tableString+="<caption style='   font-size: 20px;  font-weight:  bold;'>"+title+"</caption>";
+	    var frozenColumns = printDatagrid.datagrid("options").frozenColumns;  // 得到frozenColumns对象
+	    var columns = printDatagrid.datagrid("options").columns;    // 得到columns对象
+	    var nameList = '';
+
+	    // 载入title
+	    if (typeof columns != 'undefined' && columns != '') {
+	        $(columns).each(function (index) {
+	            tableString += '\n<tr>';
+	            if (typeof frozenColumns != 'undefined' && typeof frozenColumns[index] != 'undefined') {
+	                for (var i = 0; i < frozenColumns[index].length; ++i) {
+	                    if (!frozenColumns[index][i].hidden) {
+	                        tableString += '\n<th width="' + frozenColumns[index][i].width + '"';
+	                        if (typeof frozenColumns[index][i].rowspan != 'undefined' && frozenColumns[index][i].rowspan > 1) {
+	                            tableString += ' rowspan="' + frozenColumns[index][i].rowspan + '"';
+	                        }
+	                        if (typeof frozenColumns[index][i].colspan != 'undefined' && frozenColumns[index][i].colspan > 1) {
+	                            tableString += ' colspan="' + frozenColumns[index][i].colspan + '"';
+	                        }
+	                        if (typeof frozenColumns[index][i].field != 'undefined' && frozenColumns[index][i].field != '') {
+	                            nameList += ',{"f":"' + frozenColumns[index][i].field + '", "a":"' + frozenColumns[index][i].align + '"}';
+	                        }
+	                        tableString += '>' + frozenColumns[0][i].title + '</th>';
+	                    }
+	                }
+	            }
+	            for (var i = 0; i < columns[index].length; ++i) {
+	                if (!columns[index][i].hidden) {
+	                    tableString += '\n<th width="' + columns[index][i].width + '"';
+	                    if (typeof columns[index][i].rowspan != 'undefined' && columns[index][i].rowspan > 1) {
+	                        tableString += ' rowspan="' + columns[index][i].rowspan + '"';
+	                    }
+	                    if (typeof columns[index][i].colspan != 'undefined' && columns[index][i].colspan > 1) {
+	                        tableString += ' colspan="' + columns[index][i].colspan + '"';
+	                    }
+	                    if (typeof columns[index][i].field != 'undefined' && columns[index][i].field != '') {
+	                        nameList += ',{"f":"' + columns[index][i].field + '", "a":"' + columns[index][i].align + '"}';
+	                    }
+	                    tableString += '>' + columns[index][i].title + '</th>';
+	                }
+	            }
+	            tableString += '\n</tr>';
+	        });
+	    }
+	    // 载入内容
+	    var rows = printDatagrid.datagrid("getRows"); // 这段代码是获取当前页的所有行
+	    var nl = eval('([' + nameList.substring(1) + '])');
+	    for (var i = 0; i < rows.length; ++i) {
+	        tableString += '\n<tr>';
+	        $(nl).each(function (j) {
+	            var e = nl[j].f.lastIndexOf('_0');
+
+	            tableString += '\n<td';
+	            if (nl[j].a != 'undefined' && nl[j].a != '') {
+	                tableString += ' style="text-align:' + nl[j].a + ';"';
+	            }
+	            tableString += '>';
+	            if (e + 2 == nl[j].f.length) {
+	                tableString += rows[i][nl[j].f.substring(0, e)];
+	            }
+	            else{
+	                if(rows[i][nl[j].f]==undefined){
+	                    tableString+="";
+	                }else{
+	                    tableString += rows[i][nl[j].f];
+	                }
+	            }
+
+	            tableString += '</td>';
+	        });
+	        tableString += '\n</tr>';
+	    }
+	    tableString += '\n</table>';
+	    sessionStorage.setItem("sent", tableString);
+	    window.open("print.html", strPrintName,
+	        "location:No;status:No;help:No;dialogWidth:800px;dialogHeight:600px;scroll:auto;");
+	}
+	
+	</script>
+</html>

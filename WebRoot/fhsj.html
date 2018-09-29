@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+<!--     <style>
+    .datagrid-cell,.datagrid-header .datagrid-cell span{font-size: 14px;};
+    </style> -->
+ <script type="text/javascript">
+//加载完成后运行
+$(function() {
+	$('#tree_xmlb').tree({
+		url:'ServletCheJianTree',
+		cache:false,
+		loadFilter: function(data){
+			//console.log(jsonbl(data));
+	        return jsonbl(data);   
+	    },
+		onClick: function(node){//单击节点运行
+				var jizhanid = node.id;//取得所选的节点id，此id为技站id，判断液相固相
+				var hysj_date = $("#datebox").datebox('getValue');
+		}
+	});
+	var tree = {  
+		    id:'',  //节点的ID
+		    text:'',  //节点显示的文字
+		    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+		    checked:'',  //指示节点是否被选中。
+		    attributes:'',  //给一个节点添加的自定义属性。
+		    children:''  //定义了一些子节点的节点数组。
+		}
+	function jsonbl(data){  
+		    var easyTree = [];
+			var jizhanid = null; 
+			var i=0;
+		    $.each(data,function(index,item){
+				ii=0;
+				if(item.jizhanid != jizhanid){
+					easyTree[i] = bl(data,item);
+					jizhanid = item.jizhanid;
+					i++;
+				}
+		     }); 
+		    return easyTree;  
+		}
+	//此处是把后台传过来的json数据转成easyui规定的格式  
+	function bl(data,item){  
+	    var tree = new Object();
+		var jizhanid = item.jizhanid;
+		var children = [];
+			tree.id = item.jizhanid;  
+		    tree.text = item.jizhanname;  
+		    tree.state = 'open';  
+		    tree.checked = false;
+			tree.attributes = ''; 
+			return tree;
+	}
+  	$('#datebox').datebox({
+        onShowPanel : function() {// 显示日趋选择对象后再触发弹出月份层的事件，初始化时没有生成月份层  
+            span.trigger('click'); // 触发click事件弹出月份层  
+            if (!tds)  
+                setTimeout(function() {// 延时触发获取月份对象，因为上面的事件触发和对象生成有时间间隔  
+                    tds = p.find('div.calendar-menu-month-inner td');  
+                    tds.click(function(e) {  
+                        e.stopPropagation(); // 禁止冒泡执行easyui给月份绑定的事件  
+                        var year = /\d{4}/.exec(span.html())[0]// 得到年份  
+                        , month = parseInt($(this).attr('abbr'), 10); // 月份  
+                        $('#datebox').datebox('hidePanel')// 隐藏日期对象  
+                        .datebox('setValue', year + '-' + month); // 设置日期的值  
+                    });
+                }, 0);  
+        },  
+        parser : function(s) {// 配置parser，返回选择的日期  
+            if (!s) return new Date();  
+            var arr = s.split('-');  
+            return new Date(parseInt(arr[0], 10), parseInt(arr[1], 10) - 1 , 1);  
+        },  
+        formatter : function(d) {  
+        	var currentMonth = (d.getMonth()+1);
+            var currentMonthStr = currentMonth < 10 ? ('0' + currentMonth) : (currentMonth + '');
+            return d.getFullYear() + '-' + currentMonthStr; 
+        }// 配置formatter，只返回年月  
+    });  
+    var p = $('#datebox').datebox('panel'), // 日期选择对象  
+    tds = false, // 日期选择对象中月份  
+    span = p.find('span.calendar-text'); // 显示月份层的触发控件 
+    function myformatter(date){//格式化日期 
+	    var y = date.getFullYear();  
+	    var m = date.getMonth()+1;  
+	    var d = date.getDate();  
+	    return y+'-'+(m<10?('0'+m):m); 
+	}
+    var mydate = myformatter(new Date($.ajax({async: false}).getResponseHeader("Date")));
+    $("#datebox").datebox("setValue",mydate);//日期控件默认服务器当前日期
+});
+
+function chaxun(){
+	$('#dg').datagrid('loadData', { total: 0, rows: [] });//清空表格数据
+	$('#dg').datagrid({  
+        columns:[[]],  
+        rownumbers:false,  
+        pagination:false  
+    });  
+	var date = $("#datebox").datebox('getValue');
+	$.ajax({//查询数据
+		type:"post",
+		url:'ServletFuHeShuJu_CX',
+		async:true,
+		dataType: "json",
+		data:{date : date},
+		success:function(data) {
+			var i = 0;
+			var col = new Array();//列字段数组
+			for (var key in data[0][0]) {
+				col[i] = {field: data[0][0][key], align:'center',title: key, width:100};
+				i++;
+			}
+			//console.log(col);
+			data = data[1];
+			//console.log(data);
+			$("#dg").edatagrid({
+				data:data,
+				columns:[col],
+				fit:true,
+				//fitColumns: 'true',
+				//scrollbarSize:0,
+				autoRowHeight:false,
+				onLoadSuccess:function(data){
+					if(data.total==0){
+						$('#dg').datagrid('insertRow',{
+							row: {}
+						});
+						$("tr[datagrid-row-index='0']").css({"visibility":"hidden"});
+					}
+					$(this).datagrid("autoMergeCellAndCells",['fhzb_date','日期']);
+				}
+			})
+			//console.log(data[0][0]);
+			//console.log(data);
+		},
+		error:function(XMLHttpRequest,textStatus,errorThrown){
+			alert(XMLHttpRequest.status);
+			alert(XMLHttpRequest.readyState);
+			alert(textStatus);
+		}
+	});
+}
+function excel(){//导出Excel
+	var date = $("#datebox").datebox('getValue');
+	window.location.href = 'ServletFuHeShuJu_Excel?date=' + date;
+}
+  </script>
+</head>
+<body class="easyui-layout">
+   <!-- 内容显示区 -->
+	<div data-options="region:'center', border: false,  title:'复合数据查询'" style="width: 100%;height: 100%;overflow:hidden">
+		<table id="dg" class="easyui-datagrid" style="width:auto; height:auto; overflow: scroll;"
+				data-options=" toolbar:'#toolbar'">
+		</table>
+		<!--工具栏-->
+		<div id="toolbar" style="width:100%; padding: 3px;background:#eee;">
+			<label style="margin-left: 10px;">化验时间：</label>
+			<input id="datebox" type="text" class="easyui-datebox" required="required" 
+					style="width: 100px;" data-options="editable: false">
+			<a id="chaxun" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" data-options="iconCls:'icon-search'" href="#" onclick="chaxun()">查询</a>
+			<a id="excel" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" href="#" onclick="excel()">导出到Excel</a>
+			<label id="shenhe_lab" style="margin-left: 10px; font-size: 16px;"></label>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+$.extend($.fn.datagrid.methods, {
+    autoMergeCells : function (jq, fields) {
+        return jq.each(function () {
+            var target = $(this);
+            if (!fields) {
+                fields = target.datagrid("getColumnFields");
+            }
+            var rows = target.datagrid("getRows");
+            var i = 0,
+            j = 0,
+            temp = {};
+            
+            for (i; i < rows.length; i++) {
+                var row = rows[i];
+                j = 0;
+                for (j; j < fields.length; j++) {
+                    var field = fields[j];
+                    var tf = temp[field];
+                    if (!tf) {
+                        tf = temp[field] = {};
+                        tf[row[field]] = [i];
+                    } else {
+                        var tfv = tf[row[field]];
+                        if (tfv) {
+                            tfv.push(i);
+                        } else {
+                            tfv = tf[row[field]] = [i];
+                        }
+                    }
+                }
+            }
+            $.each(temp, function (field, colunm) {
+                $.each(colunm, function () {
+                    var group = this;
+                    
+                    if (group.length > 1) {
+                        var before,
+                        after,
+                        megerIndex = group[0];
+                        for (var i = 0; i < group.length; i++) {
+                            before = group[i];
+                            after = group[i + 1];
+                            if (after && (after - before) == 1) {
+                                continue;
+                            }
+                            var rowspan = before - megerIndex + 1;
+                            if (rowspan > 1) {
+                                target.datagrid('mergeCells', {
+                                    index : megerIndex,
+                                    field : field,
+                                    rowspan : rowspan
+                                });
+                            }
+                            if (after && (after - before) != 1) {
+                                megerIndex = after;
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    },
+    autoMergeCellAndCells : function (jq, fields) {
+        return jq.each(function () {
+            var target = $(this);
+            if (!fields) {
+                fields = target.datagrid("getColumnFields");
+            }
+            var cfield = fields[0];
+            if (!cfield) {
+                return;
+            }
+            var rows = target.datagrid("getRows");
+            var i = 0,
+            j = 0,
+            temp = {};
+            for (i; i < rows.length; i++) {
+                var row = rows[i];
+                j = 0;
+                var tf = temp[cfield];
+                if (!tf) {
+                    tf = temp[cfield] = {};
+                    tf[row[cfield]] = [i];
+                
+                } else {
+                    var tfv = tf[row[cfield]];
+                    if (tfv) {
+                        tfv.push(i);
+                    } else {
+                        tfv = tf[row[cfield]] = [i];
+                        
+                    }
+                }
+            }
+            
+            $.each(temp, function (field, colunm) {
+                $.each(colunm, function () {
+                    var group = this;
+                    
+                    if (group.length > 1) {
+                        var before,
+                        after,
+                        megerIndex = group[0];
+                        for (var i = 0; i < group.length; i++) {
+                            before = group[i];
+                            after = group[i + 1];
+                            if (after && (after - before) == 1) {
+                                continue;
+                            }
+                            var rowspan = before - megerIndex + 1;
+                            if (rowspan > 1) {
+                                for(var j=0;j<fields.length;j++){
+                                    target.datagrid('mergeCells', {
+                                        index : megerIndex,
+                                        field : fields[j],
+                                        rowspan : rowspan
+                                   });
+                                }
+                            }
+                            if (after && (after - before) != 1) {
+                                megerIndex = after;
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    }
+    
+});
+</script>
+</html>

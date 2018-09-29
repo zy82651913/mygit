@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+		
+		<style type="text/css">
+			#fm,#fm_passxg{
+				margin:0;
+				padding:10px 30px;
+			}
+			.ftitle{
+				font-size:14px;
+				font-weight:bold;
+				color:#666;
+				padding:5px 0;
+				margin-bottom:10px;
+				border-bottom:1px solid #ccc;
+			}
+			.fitem{
+				margin-bottom:5px;
+			}
+			.fitem label{
+				display:inline-block;
+				width:80px;
+			}
+			.datagrid-header span {font-size: 16px !important; }
+			.datagrid-cell {font-size: 16px !important; }
+		</style>
+	<script type="text/javascript">
+	$(document).ready(function(){
+		$('#datebox').datebox({
+	        onShowPanel : function() {// 显示日趋选择对象后再触发弹出月份层的事件，初始化时没有生成月份层  
+	            span.trigger('click'); // 触发click事件弹出月份层  
+	            if (!tds)  
+	                setTimeout(function() {// 延时触发获取月份对象，因为上面的事件触发和对象生成有时间间隔  
+	                    tds = p.find('div.calendar-menu-month-inner td');  
+	                    tds.click(function(e) {  
+	                        e.stopPropagation(); // 禁止冒泡执行easyui给月份绑定的事件  
+	                        var year = /\d{4}/.exec(span.html())[0]// 得到年份  
+	                        , month = parseInt($(this).attr('abbr'), 10); // 月份  
+	                        $('#datebox').datebox('hidePanel')// 隐藏日期对象  
+	                        .datebox('setValue', year + '-' + month); // 设置日期的值  
+	                    });
+	                }, 0);  
+	        },  
+	        parser : function(s) {// 配置parser，返回选择的日期  
+	            if (!s) return new Date();  
+	            var arr = s.split('-');  
+	            return new Date(parseInt(arr[0], 10), parseInt(arr[1], 10) - 1 , 1);  
+	        },  
+	        formatter : function(d) {  
+	        	var currentMonth = (d.getMonth()+1);
+	            var currentMonthStr = currentMonth < 10 ? ('0' + currentMonth) : (currentMonth + '');
+	            return d.getFullYear() + '-' + currentMonthStr; 
+	        }// 配置formatter，只返回年月  
+	    });  
+	    var p = $('#datebox').datebox('panel'), // 日期选择对象  
+	    tds = false, // 日期选择对象中月份  
+	    span = p.find('span.calendar-text'); // 显示月份层的触发控件 
+	    function myformatter(date){//格式化日期 
+		    var y = date.getFullYear();  
+		    var m = date.getMonth()+1;  
+		    var d = date.getDate();  
+		    return y+'-'+(m<10?('0'+m):m); 
+		}
+	    var mydate = myformatter(new Date($.ajax({async: false}).getResponseHeader("Date")));
+	    $("#datebox").datebox("setValue",mydate);//日期控件默认服务器当前日期
+	})
+	function edit_date(){//修改日期
+		var date = $("#datebox").datebox('getValue');
+		$.ajax({//查询数据
+			type:"post",
+			url:'ServletJiXiaoKaoHe_DateEdit',
+			async:true,
+			dataType: "json",
+			data:{date : date},
+			success:function(data) {
+				if (data == true) {
+					$.messager.show({title:'提示',msg:'修改日期成功。'});
+				}
+			},
+			error:function(XMLHttpRequest,textStatus,errorThrown){
+				$.messager.show({title:'警告',msg:'修改日期失败。'});
+			}
+		});
+	}
+	function jisuan(){//计算
+		var date = $("#datebox").datebox('getValue');
+		$('#dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+		$.ajax({//查询数据
+			type:"post",
+			url:'ServletJiXiaoKaoHe_JS',
+			async:true,
+			dataType: "json",
+			data:{date : date},
+			success:function(data) {
+				if (data == true) {
+					$.messager.show({title:'提示',msg:'计算完毕。'});
+					$('#dg').datagrid({
+						url:'ServletJiXiaoKaoHe_JS_CX',
+						queryParams: {
+							date: date
+						},
+						columns:[[
+									{field:'jxkhgl_id', title:'管理id',align:'center'},
+									{field:'cj', title:'车间',align:'center'},
+									{field:'date', title:'日期',align:'center'},
+									{field:'khxm', title:'考核项目名称',align:'center'},
+									{field:'result', title:'数据',align:'center'}
+						          ]]
+					})
+				}
+				$('.datagrid-cell').css('font-size','30px');
+			},
+			error:function(XMLHttpRequest,textStatus,errorThrown){
+				$.messager.show({title:'警告',msg:'计算失败。'});
+			}
+		});
+	}
+	function chaxun(){
+		var date = $("#datebox").datebox('getValue');
+		$('#dg').datagrid({
+			url:'ServletJiXiaoKaoHe_JS_CX',
+			queryParams: {
+				date: date
+			},
+			columns:[[
+						{field:'jxkhgl_id', title:'管理id',align:'center'},
+						{field:'cj', title:'车间',align:'center'},
+						{field:'date', title:'日期',align:'center'},
+						{field:'khxm', title:'考核项目名称',align:'center'},
+						{field:'result', title:'数据',align:'center'}
+			          ]]
+		})
+	}
+	</script>
+	</head>
+	<body>
+		<!--绩效考核表  -->
+		<table id="dg" class="easyui-datagrid" style="width:auto;height:auto;"
+				data-options=" fit:'true', singleSelect:'true',toolbar:'#toolbar', autoRowHeight:true, striped:true">
+		</table>
+		<!--表工具  -->
+		<div id="toolbar">
+			<label style="margin-left: 10px;">日期：</label>
+			<input id="datebox" type="text" class="easyui-datebox" required="required" 
+								style="width: 100px;" data-options="editable: false">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="chaxun()">查询</a>
+			｜
+			<a href="#" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="edit_date()">修改指标日期</a>
+			｜
+			<a href="#" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="jisuan()">计算</a>
+		</div>
+		
+		
+	</body>
+</html>

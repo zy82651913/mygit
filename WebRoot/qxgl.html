@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<!--解决双滚动条-->
+	<style type="text/css">
+       	 #center-tabs .tabs-panels>.panel>.panel-body {  
+	    	overflow: hidden;  
+	    }  
+    </style>
+    <script type="text/javascript">
+  //加载完成后运行
+    $(document).ready(function(){
+    	$('#qxgl_dg').edatagrid({
+    		url:'ServletQx_Cx',
+    		destroyUrl: 'ServletQx_Delete',
+    	});
+    		$('#nb').numberbox({//创建模拟点数表格
+            	min:4,
+            	max:18,
+            	onChange: function(newValue,oldValue){
+            		$("#tbody").empty();//清除表格元素
+            		for(var i=0;i<newValue;i++){
+            			var xi="x"+i
+            			var yi="y"+i
+            			var jieguoi="jieguo"+i
+            			var x = '<input type="text" id="'+xi+'" style="width:120px;text-align:center;">';
+            			var y = '<input type="text" id="'+yi+'" style="width:120px;text-align:center;">';
+            			var jieguo = '<input type="text" id="'+jieguoi+'" style="width:120px;text-align:center;">';
+            			$("#tbody").append("<tr>");
+            			$("#tbody").append("'<td>"+x+"</td>'");
+            			$("#tbody").append("'<td>"+y+"</td>'");
+            			$("#tbody").append("'<td>"+jieguo+"</td>'");
+            			$("#tbody").append("</tr>");
+            			var xid="#x"+i;
+           			  	var yid="#y"+i;
+           			 	var jieguoid="#jieguo"+i;
+           			 	$(xid).numberbox({precision:3});
+           			 	$(yid).numberbox({precision:3});
+           			 	$(jieguoid).numberbox({precision:3});
+           			 	$(jieguoid).numberbox({disabled:true});
+            		}
+            	}
+            });
+	});
+	function qxjs(){//曲线计算
+	  var v=$('#nb').numberbox('getValue');//获取模拟点数
+	  var x=new Array();
+	  var y=new Array();
+	  for(var i=0;i<v;i++){
+		  var xid="#x"+i;
+		  var yid="#y"+i;
+		  x[i] = $(xid).val();
+		  y[i] = $(yid).val();
+	  }
+	  var j={//把两个数组放入对象
+			  "x":x,
+	  		  "y":y
+	  }
+	  json=JSON.stringify(j);//把js对象转换成json
+	  $.ajax({//后台交互
+		 type:"post",
+		 url:"ServletQuXianNiHe",
+		 async:true,
+		 dataType: "json",
+		 data:{json:json},//把json对象加个名字用于在后台获取
+		 success:function(data) {
+			 $('#A1').numberbox('setValue', data.A1);
+			 $('#A2').numberbox('setValue', data.A2);
+			 $('#A3').numberbox('setValue', data.A3);
+			 $('#A4').numberbox('setValue', data.A4);
+			 A1=data.A1;
+			 A2=data.A2;
+			 A3=data.A3;
+			 A4=data.A4;
+			 for (var i = 0; i < x.length; i++) {
+				 gs="A1+A2*a+A3*Math.pow(a,2)+A4*Math.pow(a,3)";//曲线计算公式
+				 var a = x[i];
+				 $('#jieguo'+i).numberbox('setValue',eval(gs));
+			}
+		 }
+	  });
+  }
+	function EditorQx(){//修改曲线
+		try{
+			var qxid = $('#qxgl_dg').datagrid('getSelected').id//获取表中选中的曲线id
+			var mnds = $('#qxgl_dg').datagrid('getSelected').qx_mnds//获取表中选中的曲线模拟点数
+			$('#dlg_xjqx').dialog('open').dialog('setTitle','曲线修改');
+			$.ajax({//获取曲线的数据，添到曲线修改对话框中
+				type:"post",
+				url:"ServletQuXianEditor_Cx",
+				async:true,
+				dataType: "json",
+				data:{qxid:qxid,mnds:mnds},//把json对象加个名字用于在后台获取
+				success:function(data) {
+					$('#A1').numberbox('setValue', data.a1);
+					$('#A2').numberbox('setValue', data.a2);
+					$('#A3').numberbox('setValue', data.a3);
+					$('#A4').numberbox('setValue', data.a4);
+					$('#qx_name').val(data.qx_name);//曲线名称
+					$('#nb').numberbox('setValue', data.qx_mnds);//模拟点数
+					$('#paixuid').numberbox('setValue', data.pxid);//排序号
+					$('#beizhu').val(data.qx_note);//备注
+					for(var i=0;i<data.qx_mnds;i++){//基础数据
+						var xid="#x"+i;
+					  	var yid="#y"+i;
+					  	$(xid).numberbox('setValue',data.x[i]);
+					  	$(yid).numberbox('setValue',data.y[i]);
+					}
+				 }
+			});
+		}catch(e){
+			$.messager.alert('错误','选择一条曲线');
+		}
+	}
+	function Save(){//曲线对话框保存
+		try{
+			var qxid = $('#qxgl_dg').datagrid('getSelected').id//获取表中选中的曲线id
+		}catch(e){
+			qxid=0;
+		}
+		var v=$('#nb').numberbox('getValue');//获取模拟点数
+		var qxname = $('#qx_name').val();
+		var paixuid=$('#paixuid').numberbox('getValue');//获取排序ID
+		var beizhu=$('#beizhu').val();//获取计算出的A4值
+		var A1=$('#A1').numberbox('getValue');//获取计算出的A1值
+		var A2=$('#A2').numberbox('getValue');//获取计算出的A2值
+		var A3=$('#A3').numberbox('getValue');//获取计算出的A3值
+		var A4=$('#A4').numberbox('getValue');//获取计算出的A4值
+		if(qxname==""){//没有曲线名称
+			alert("没有输入曲线名称！");
+			return;
+		}
+		if(A1==""){//没有计算
+			alert("先计算再保存结果！");
+			return;
+		}
+		if(paixuid==""){
+			alert("输入排序号！");
+			return;
+		}
+		var gsa=A1+"+";
+		var gsb=A2+"*X";
+		var gsc="+"+A3+"*"+"X"+"2".sup();
+		var gsd="+"+A4+"*"+"X"+"3".sup();
+		if(A1==0){
+			gsa="";
+		}
+		if(A2==0){
+			gsb="";
+		}
+		if(A3==0){
+			gsc="";
+		}
+		if(A4==0){
+			gsd="";
+		}
+		var gongshi="Y="+gsa+gsb+gsc+gsd;
+		//var gongshi=A1+"+"+A2+"*X"+"+"+A3+"*"+"X"+"2".sup()+"+"+A4+"*"+"X"+"3".sup();//拼接公式字符串
+		var x=new Array();//新建X轴数组
+		var y=new Array();//新建X轴数组
+		for(var i=0;i<v;i++){//循环添加X,Y轴数组的值
+			var xid="#x"+i;
+		  	var yid="#y"+i;
+		  	x[i] = $(xid).val();
+		  	y[i] = $(yid).val();
+		}
+		var j={//把两个数组和模拟点数，计算出的A1-A4的值放入对象
+				"qxid":qxid,
+				"gongshi":gongshi,
+			    "x":x,
+	 		  	"y":y,
+	 		  	"v":v,
+	 		  	"A1":A1,
+	 		  	"A2":A2,
+	 		  	"A3":A3,
+	 		  	"A4":A4,
+	 		  	"qxname":qxname,
+	 		  	"paixuid":paixuid,
+	 		  	"beizhu":beizhu
+		 }
+		 json=JSON.stringify(j);//把js对象转换成json
+		 $.ajax({//后台交互
+			 type:"post",
+			 url:"SelectQuXianNiHe_Save",
+			 async:true,
+			 dataType: "json",
+			 data:{json:json},//把json对象加个名字用于在后台获取
+			 success:function(data) {
+				 if(data==true){
+					 alert("曲线名称重复！");
+				 }else if(data=="e"){
+					 alert("服务器错误，修改失败！");
+				 }else{
+					 alert("保存成功！");
+					 $('#dlg_xjqx').dialog('close');
+					 $('#qxgl_dg').datagrid('reload');
+				 }
+			 }
+		  });
+		//var gs="A1+A2*x+A3*Math.pow(x,2)+A4*Math.pow(x,3)";//曲线计算公式
+	}
+	/*曲线查询对话框*/
+	function qxcx(){
+		try{
+			var qxname = $('#qxgl_dg').datagrid('getSelected').qx_name;//获取表中选中的曲线id
+		}catch (e) {
+			alert("选择一条曲线！");
+			return;
+		}
+		$('#qxcx').window('open');
+		$('#lb_qxname').text(qxname);
+		$('#csz').focus();
+		
+	}
+	function button_qxcx(){//曲线查询按钮
+		var a1 = $('#qxgl_dg').datagrid('getSelected').a1;
+		var a2 = $('#qxgl_dg').datagrid('getSelected').a2;
+		var a3 = $('#qxgl_dg').datagrid('getSelected').a3;
+		var a4 = $('#qxgl_dg').datagrid('getSelected').a4;
+		var csz = $('#csz').val();//初始值
+		var zzz = $('#zzz').val();//最终值
+		$.ajax({//后台交互
+			 type:"post",
+			 url:"ServletQuXianJiSuan",
+			 async:true,
+			 dataType: "json",
+			 data:{"a1":a1,"a2":a2,"a3":a3,"a4":a4,"csz":csz,"zzz":zzz},//把json对象加个名字用于在后台获取
+			 success:function(data) {
+				 $('#dg_qxcx').datagrid({
+				    data:data,
+				    fit:true,
+				    columns:[[
+						{field:'a0',title:'',width:100,align:'center'},
+						{field:'a1',title:'0.000',width:100,align:'center'},
+						{field:'a2',title:'0.001',width:100,align:'center'},
+						{field:'a3',title:'0.002',width:100,align:'center'},
+						{field:'a4',title:'0.003',width:100,align:'center'},
+						{field:'a5',title:'0.004',width:100,align:'center'},
+						{field:'a6',title:'0.005',width:100,align:'center'},
+						{field:'a7',title:'0.006',width:100,align:'center'},
+						{field:'a8',title:'0.007',width:100,align:'center'},
+						{field:'a9',title:'0.008',width:100,align:'center'},
+						{field:'a10',title:'0.009',width:100,align:'center'},
+				    ]]
+				});
+			 }
+		  });
+		
+	}
+    </script>
+	</head>
+<body>
+	<table id="qxgl_dg" class="easyui-datagrid" style="width:auto;height:auto;" idField="id"
+		data-options="rownumbers:'true', border: false, fit:'true', fitColumns:'true', singleSelect:true,toolbar:'#toolbar'">
+	<thead>
+		<tr>
+			<th field="id" width="5" hidden="true">曲线ID</th>
+			<th field="pxid" width="6">排序ID</th>
+			<th field="qx_name" width="10">曲线名称</th>
+			<th field="a1" width="10">A1</th>
+			<th field="a2" width="10">A2</th>
+			<th field="a3" width="10">A3</th>
+			<th field="a4" width="10">A4</th>
+			<th field="qx_math" width="60">曲线公式</th>
+			<th field="qx_note" width="20">备注</th>
+		</tr>
+	</thead>
+	</table>
+	<!--表工具  -->
+	<div id="toolbar">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#dlg_xjqx').dialog('open').dialog('setTitle','曲线添加');$('#qxgl_dg').datagrid('clearSelections')">新建曲线</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="EditorQx()">修改曲线</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#qxgl_dg').edatagrid('destroyRow')">删除曲线</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="qxcx()">查询曲线</a>
+	</div>
+	<!--新建曲线对话框-->
+	<div id="dlg_xjqx" class="easyui-dialog" style="width:660px;height:550px;" data-options="buttons:'#dlg-buttons', toolbar:'#dlg-toolbar', closed:'true'">
+		<div style="float: left;width: auto;">
+			<table width="240px;" border="1" cellspacing="0" cellpadding="0" style=" text-align:center; border-collapse: collapse; margin: 5px;font-size: 16px;">
+				<thead>
+					<tr>
+						<th style="width: 120px;">X</th>
+						<th style="width: 120px;">Y</th>
+						<th style="width: 120px;">计算结果</th>
+					</tr>
+				</thead>
+				<tbody id="tbody"></tbody>
+			</table>
+		</div>
+		<div style="float: left;width: 250px;">
+			<table width="240px;" border="1" cellspacing="0" cellpadding="0" style="text-align:center; border-collapse: collapse; margin: 5px;font-size: 16px;">
+				<tr><td style="width: 40px;">A1</td><td style="width: 136px;"><input type="text" class="easyui-numberbox" id="A1" data-options="disabled:true,precision:6" style="width:200px;text-align:center;"></td></tr>
+				<tr><td style="width: 40px;">A2</td><td style="width: 136px;"><input type="text" class="easyui-numberbox" id="A2" data-options="disabled:true,precision:6" style="width:200px;text-align:center;"></td></tr>
+				<tr><td style="width: 40px;">A3</td><td style="width: 136px;"><input type="text" class="easyui-numberbox" id="A3" data-options="disabled:true,precision:6" style="width:200px;text-align:center;"></td></tr>
+				<tr><td style="width: 40px;">A4</td><td style="width: 136px;"><input type="text" class="easyui-numberbox" id="A4" data-options="disabled:true,precision:6" style="width:200px;text-align:center;"></td></tr>
+				<tr><td style="width: 40px;">排序</td><td style="width: 136px;"><input type="text" class="easyui-numberbox" id="paixuid" style="width:200px;text-align:center;"></td></tr>
+				<tr><td style="width: 40px;">备注</td><td style="width: 136px;"><input type="text" id="beizhu" style="width:200px;text-align:center;"></td></tr>
+			</table>
+		</div>
+	</div>
+	<div id="dlg-toolbar">
+		模拟点数：<input type="text" id="nb" style="width: 30px;" />
+		曲线名称：<input id="qx_name" class="easyui-validatebox" data-options="required:true">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="qxjs()">计算</a>
+	</div>
+	<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="Save()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_xjqx').dialog('close')">取消</a>
+		</div>
+	<!--曲线查询窗口-->
+	<div id="qxcx" class="easyui-window" title="曲线查询" style="width:800px;height:550px"
+	data-options="closed:true,minimizable:false,collapsible:false,modal:true">
+		<div data-options="region:'north',border: false"style="width:auto;height: 5.5%;border-bottom: thin solid;display:flex;align-items:center;">
+			<label style="margin-left: 10px;font-size: 15px; ">曲线名称：</label>
+			<label id="lb_qxname" style="font-size: 15px; font-weight:bold;color: red;"></label>
+			<label style="margin-left: 50px;font-size: 15px; ">初始值：</label>
+			<input type="text" id="csz" style="width: 50px;" />
+			<label style="margin-left: 20px;font-size: 15px; ">终止值：</label>
+			<input type="text" id="zzz" style="width: 50px;" />
+			<input type="button" value="查询" style="margin-left: 20px;" onclick="button_qxcx()"/>
+		</div>
+		<div data-options="region:'south',border: false, fit:true" style="height: 94.4%;">
+			<table id="dg_qxcx" data-options="fitColumns:'true',singleSelect:true,rownumbers:false" style="height: auto;"></table>
+		</div>
+	</div>
+</body>
+</html>

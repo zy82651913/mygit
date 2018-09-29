@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>化验室数据录入系统</title>
+	<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+	
+	<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/datagrid-bufferview.js" charset="utf-8"></script>
+	<style type="text/css">
+		#fm,#fm_passxg{
+			margin:0;
+			padding:10px 30px;
+		}
+		.ftitle{
+			font-size:14px;
+			font-weight:bold;
+			color:#666;
+			padding:5px 0;
+			margin-bottom:10px;
+			border-bottom:1px solid #ccc;
+		}
+		.fitem{
+			margin-bottom:5px;
+		}
+		.fitem label{
+			display:inline-block;
+			width:80px;
+		}
+	</style>
+	<script type="text/javascript">
+	$(function(){
+		$('#ddbm_gl_dg').edatagrid({
+			url: 'ServletDD_RiBao_BieMian_CX',
+			saveUrl: 'ServletDD_RiBao_BieMian_Save',
+			updateUrl:'ServletDD_RiBao_BieMian_Save',
+			destroyUrl: 'ServletDD_RiBao_BieMian_Delete',
+			view:bufferview,
+			pageSize:50,
+			autoRowHeight:false,
+			onSave:function(index, row){
+				$('#ddbm_gl_dg').edatagrid('reload');
+				$.messager.show({title:'通知',msg:'保存成功。'});
+			},
+			onDestroy:function(index, row){
+				$('#ddbm_gl_dg').edatagrid('reload');
+				$.messager.show({title:'通知',msg:'删除成功。'});
+			},
+			onError: function(index,row){
+				alert("错误："+row.msg);
+				$('#ddbm_gl_dg').edatagrid('reload');
+			}
+		});
+	});
+	/* 树*/
+	function tree() {
+			$("#tree_yb").tree({//项目列表
+				url:"ServletXMLB_Tree",
+				onLoadSuccess: function () {$(this).tree('collapseAll')},//加载完毕后关闭所有节点
+				onSelect: function(node){//单击节点运行
+					if ($(this).tree('isLeaf',node.target)) {//判断节点是否为叶子节点
+						var xmid = node.id; 
+						$("#sczb_dg").edatagrid({
+							url:"ServletXm_ScCx?xmid="+xmid,
+							columns:[[
+										{field:'xmid', title:'项目id',align:'center',width:15,hidden:true},
+										{field:'zb_name', title:'指标名称',align:'center',width:40},
+										{field:'zbbh', title:'指标编号',align:'center',width:40},
+										{field:'xsdws', title:'小数点位数',align:'center',width:40,hidden:true},
+							          ]],
+							onSelect:function(index, row){
+								var xmid = row.xmid;
+								var xm_name = node.text;
+								var zb_name = row.zb_name;
+								var zbbh = row.zbbh;
+								var xmzb_name = xm_name+zb_name;
+								var xsdws = row.xsdws;
+								//文本框填入数据
+								$('#xmid').val(xmid);
+								$('#xm_name').val(xm_name);
+								$('#zb_name').val(zb_name);
+								$('#zbbh').val(zbbh);
+								$('#xmzb_name').val(xmzb_name);
+								$('#xsdws').val(xsdws);
+								$('#sjclass').val("一般数据");
+							}
+						})
+					}else{
+						$(this).tree('toggle',node.target);//打开节点
+					}
+				
+				}
+			})
+			$("#tree_fh").tree({
+				data:[{
+					text:"复合数据"
+				}],
+				onSelect: function(node){
+					$("#sczb_dg").edatagrid({
+						url:"Servlet_FuHeZhiBiaoGuanLi_DG",
+						columns:[[
+									{field:'fhzb_id', title:'复合指标id',align:'center',width:15,hidden:true},
+									{field:'fhzb_name', title:'复合指标名称',align:'center',width:40},
+									{field:'fhzb_bh', title:'复合指标编号',align:'center',width:40},
+									{field:'xsws', title:'小数点位数',align:'center',width:40,hidden:true},
+						          ]],
+						onSelect:function(index, row){
+							var fhzb_id = row.fhzb_id;
+							var fhzb_name = row.fhzb_name;
+							var zbbh = row.fhzb_bh;
+							var xmzb_name = fhzb_name;
+							var xsdws = row.xsws;
+							//文本框填入数据
+							$('#xmid').val(fhzb_id);
+							$('#xm_name').val(fhzb_name);
+							$('#xmzb_name').val(fhzb_name);
+							$('#zbbh').val(zbbh);
+							$('#xsdws').val(xsdws);
+							$('#sjclass').val("复合数据");
+						}
+					})
+				}
+			})
+		
+	}
+	/* 新建 */
+	function add() {
+		$('#dlg_add').dialog('open').dialog('setTitle','新建');
+		$('#sczb_dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+		$(".easyui-validatebox").val("");
+		$('#xmid').validatebox('readonly');
+		$('#xm_name').validatebox('readonly');
+		$('#zb_name').validatebox('readonly');
+		$('#zbbh').validatebox('readonly');
+		$('#sjclass').validatebox('readonly');
+		tree();
+	}
+	/* 保存 */
+	function save() {
+		var id;
+		try {
+			id = $('#ddbm_gl_dg').datagrid("getSelected").id;
+		} catch (e) {
+			id = "";
+		}
+		var pxid = $('#pxid').val();
+		var xmid = $('#xmid').val();
+		var xm_name = $('#xm_name').val();
+		var zb_name = $('#zb_name').val();
+		var zbbh = $('#zbbh').val();
+		var xmzb_name = $('#xmzb_name').val();
+		var guiding = $('#guiding').val();
+		var xsdws = $('#xsdws').val();
+		var sjclass = $('#sjclass').val();
+		if (sjclass == "一般数据") {
+			sjclass = 0;
+		} else {
+			sjclass = 1;
+		}
+		if (pxid == "" || xmzb_name == "" || xsdws =="") {
+			alert("填写不完整");
+		}else{
+			$.ajax({//查询输入指标
+				type:"post",
+				url:"ServletDD_RiBao_BieMian_Save",
+				async:true,
+				dataType: "json",
+				data:{id:id, pxid:pxid, xmid:xmid, xm_name:xm_name, zbbh:zbbh, xmzb_name:xmzb_name, guiding:guiding, xsdws:xsdws, sjclass:sjclass},
+				success:function(data) {
+					if (data) {
+						$.messager.alert('提示','保存成功');
+						$('#dlg_add').dialog('close');
+						$('#ddbm_gl_dg').datagrid("reload");
+					} else {
+						$.messager.alert('警告','保存失败');
+					}
+				},
+				error:function(XMLHttpRequest,textStatus,errorThrown){
+					alert(XMLHttpRequest.status);
+					alert(XMLHttpRequest.readyState);
+					alert(textStatus);
+				}
+			});
+		}
+	}
+	function edit() {//修改按钮
+		try {
+			id = $('#ddbm_gl_dg').datagrid("getSelected").id;
+			$('#dlg_add').dialog('open').dialog('setTitle','新建');
+			$('#sczb_dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+			$(".easyui-validatebox").val("");
+			$('#xmid').validatebox('readonly');
+			$('#xm_name').validatebox('readonly');
+			$('#zb_name').validatebox('readonly');
+			$('#zbbh').validatebox('readonly');
+			$('#sjclass').validatebox('readonly');
+			tree();
+			
+			$("#pxid").val($('#ddbm_gl_dg').datagrid("getSelected").pxid);
+			$("#xmid").val($('#ddbm_gl_dg').datagrid("getSelected").xmid);
+			$("#xm_name").val($('#ddbm_gl_dg').datagrid("getSelected").xm_name);
+			$("#zbbh").val($('#ddbm_gl_dg').datagrid("getSelected").zbbh);
+			$("#xmzb_name").val($('#ddbm_gl_dg').datagrid("getSelected").xmzb_name);
+			$("#guiding").val($('#ddbm_gl_dg').datagrid("getSelected").guiding);
+			$("#xsdws").val($('#ddbm_gl_dg').datagrid("getSelected").xsdws);
+			$("#sjclass").val($('#ddbm_gl_dg').datagrid("getSelected").sjclass);
+		} catch (e) {
+			$.messager.alert('警告','请选择一个项目');
+		}
+	}
+	</script>
+</head>
+<body>
+	<!--用户表  -->
+	<table id="ddbm_gl_dg" class="easyui-edatagrid" style="width:auto;height:auto" idField="id"
+			data-options="rownumbers:'true', fit:'true', singleSelect:'true',toolbar:'#toolbar'">
+		<thead>
+			<tr>
+				<th field="id" hidden="true">ID</th>
+				<th field="pxid" editor="{type:'validatebox',options:{required:true}}" data-options="width:50">排序号</th>
+				<th field="xmid" hidden="true">项目id</th>
+				<th field="xm_name" data-options="width:150">项目名称</th>
+				<th field="zbbh" data-options="width:80">指标编号</th>
+				<th field="xmzb_name" editor="{type:'validatebox',options:{required:true}}" data-options="width:150">显示名称</th>
+				<th field="guiding" editor="{type:'validatebox'}" data-options="width:80">指标规定</th>
+				<th field="xsdws" editor="{type:'validatebox',options:{required:true}}" data-options="width:60">小数位数</th>
+				<th field="sjclass" data-options="width:60">数据类型</th>
+			</tr>
+		</thead>
+	</table>
+	<!--表工具  -->
+	<div id="toolbar">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="add()" >新建</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="edit()" >修改</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#ddbm_gl_dg').edatagrid('destroyRow')">删除</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#ddbm_gl_dg').edatagrid('saveRow')">保存</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#ddbm_gl_dg').edatagrid('cancelRow')">取消</a>
+	</div>
+	
+		<div id="dlg_add" class="easyui-dialog" style="width:800px;height:500px;"
+				 buttons="#dlg-buttons" closed="true">
+				 
+			<div class="easyui-layout" data-options="fit:true">
+				<div data-options="region:'west',title:'选择项目',collapsible:false" style="width:200px;">
+					<!-- 树 -->
+					<ul id="tree_yb" class="easyui-tree" style="padding: 5px 5px 0px 5px; width:auto; height:auto;"></ul>
+					<ul id="tree_fh" class="easyui-tree" style="padding: 0px 5px 5px 5px; width:auto; height:auto;"></ul>
+				</div>
+				<div data-options="region:'center',title:'选择指标',collapsible:false" style="width:300px;">
+					<!-- 输出指标表 -->
+					<table id="sczb_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'east', collapsible:false, title:'背面数据'"  style="width:300px;">
+					<!-- 添加文本框 -->
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>排序号:</label>
+						<input class="easyui-validatebox" id="pxid" type="text" data-options="required:true,validType:'digits'" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>项目id:</label>
+						<input class="easyui-validatebox" id="xmid" type="text" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>项目名称:</label>
+						<input class="easyui-validatebox" id="xm_name" type="text" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>指标名称:</label>
+						<input class="easyui-validatebox" id="zb_name" type="text" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>指标编号:</label>
+						<input class="easyui-validatebox" id="zbbh" type="text" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>显示名称:</label>
+						<input class="easyui-validatebox" id="xmzb_name" type="text" data-options="required:true" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>指标规定:</label>
+						<input class="easyui-validatebox" id="guiding" type="text" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>小数位数:</label>
+						<input class="easyui-validatebox" id="xsdws" type="text" data-options="required:true, validType:'digits'" />
+					</div>
+					<div class="fitem" style="padding: 10px 5px 0px 10px;">
+						<label>数据类型:</label>
+						<input class="easyui-validatebox" id="sjclass" type="text" />
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-save" onclick="save()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_add').dialog('close')">取消</a>
+		</div>
+</body>
+</html>

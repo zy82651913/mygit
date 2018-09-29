@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<style type="text/css">
+		#fm,#fm_passxg{
+			margin:0;
+			padding:10px 30px;
+		}
+		.ftitle{
+			font-size:14px;
+			font-weight:bold;
+			color:#666;
+			padding:5px 0;
+			margin-bottom:10px;
+			border-bottom:1px solid #ccc;
+		}
+		.fitem{
+			margin-bottom:5px;
+		}
+		.fitem label{
+			display:inline-block;
+			width:80px;
+		}
+	</style>
+	<script type="text/javascript">
+		/*保存数据  */
+		function saveUser(){
+			$('#fm').form('submit',{
+				url: url,
+				onSubmit: function(){
+					return $(this).form('validate');
+				},
+				success: function(data){
+					if (data=="true"){
+						alert("用户名重复！");
+					} else {
+						$('#dlg').dialog('close');		// 关闭dialog
+						$('#user_dg').datagrid('reload');	// 重新加载表格
+						alert("保存成功");
+					}
+				}
+			});
+		}
+		/*新建用户  */
+		function newUser(){
+			$('#dlg').dialog('open').dialog('setTitle','新建用户');
+			$('#fm').form('clear');
+			url = 'ServletUserCr';
+		}
+		/*验证密码是否一致  */
+		$.extend($.fn.validatebox.defaults.rules, {
+			qr:{
+				validator: function(value,param){
+				return value == $(param[0]).val();
+			},
+			message:'密码不一致'
+			}
+		});
+		/*删除用户  */
+		function destroyUser(){
+			var row = $('#user_dg').datagrid('getSelected');
+			if (row){
+				$.messager.confirm('Confirm','你确定要删除这个用户吗?',function(r){
+					if (r){
+						$.post('ServletUserSc',{UserID:row.UserID},function(result){
+							if (result=="true"){
+								$('#user_dg').datagrid('reload');	// 重新加载用户数据
+							} else {
+								$.messager.show({	// 展示错误提示
+									title: 'Error',
+									msg: "删除用户错误错误！"
+								});
+							}
+						});
+					}
+				});
+			}
+		}
+		/*修改用户密码  */
+		function editUser() {
+			var row = $('#user_dg').datagrid('getSelected');//选择表格的数据
+			if (row) {
+				$('#dlg_passxg').dialog('open').dialog('setTitle','密码修改');
+				$('#fm_passxg').form('clear');
+				$("#yhm").text("用户名："+row.UserName);
+			}else{
+				alert("请选择一条数据！");
+			}
+		}
+		/*修改密码保存  */
+		function passxg() {
+			var row = $('#user_dg').datagrid('getSelected');//选择表格的数据
+			$('#fm_passxg').form('submit', {
+			    url:"ServletPwdXg",
+			    onSubmit: function(param){
+					param.UserID = row.UserID;
+					return $(this).form('validate');
+			    },
+			    success: function(data){
+					if (data=="false"){
+						alert("原始密码不正确！");
+					} else {
+						$('#dlg_passxg').dialog('close');		// 关闭dialog
+						$('#user_dg').datagrid('reload');	// 重新加载表格
+						alert("密码修改成功");
+					}
+				}
+			});
+		}
+		/*创建用户绑定角色tree*/
+		function boundRole() {
+			var UserID = $('#user_dg').datagrid('getSelected').UserID;
+			$('#dlg_boundRole').dialog('open').dialog('setTitle','绑定角色');
+			$("#tree_boundRole").tree({
+				url:'ServletUser_RoleTree',
+				checkbox:true,
+				cache:false,
+				loadFilter: function(data){ 
+					        return jsonbl(data);   
+					    },
+				onLoadSuccess:function(){//Tree加载完成后绑定菜单
+					$.post('ServletUsferCheckbox',{UserID:UserID},function(result){
+						for(var j=0;j<result.length;j++){
+							var node = $('#tree_boundRole').tree('find', result[j].RoleID);
+							$('#tree_boundRole').tree('check',node.target); 
+						}
+					});
+					 
+				}
+			});
+		}
+		//此处是easyui-tree的json格式  
+		var tree = {  
+		    id:'',  //节点的ID
+		    text:'',  //节点显示的文字
+		    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+		    checked:'',  //指示节点是否被选中。
+		    attributes:'',  //给一个节点添加的自定义属性。
+		    children:''  //定义了一些子节点的节点数组。
+		} 
+	//此处是把后台传过来的json数据转成easyui规定的格式  
+		function bl(item){  
+		    var tree = new Object();
+			var children = [];
+				tree.id = item.RoleID;  
+			    tree.text = item.RoleNote;
+			    tree.state = 'open';  
+			    tree.checked = false; 
+			return tree;
+		}  
+		function jsonbl(data){  
+		    var easyTree = []; 
+		    $.each(data,function(index,item){
+				easyTree[index] = bl(item);
+		     }); 
+		    return easyTree;  
+		}
+		/*绑定角色的保存*/
+		function save_boundRole() {
+			var node = $('#tree_boundRole').tree('getChecked');//选择后的Tree数组
+			var UserID = $('#user_dg').datagrid('getSelected').UserID;//选取的用户ID
+			var user_role = [];
+			user_role[0]=UserID;
+			for(var i=1;i<=node.length;i++){
+				user_role[i]=node[i-1].id;
+			}
+			console.log(user_role);
+			$.ajax({
+				type:"post",
+				url:"ServletUserBoundSc",
+				async:true,
+				data:{"user_role":user_role},
+				traditional: true,//这里设置为true,不用jquery转换
+				/* error:function(request){
+					alert("删除数据失败");
+				}, */
+				success:function(){
+					$.ajax({//插入数据
+						type:"post",
+						url:"ServletUserBoundCr",
+						async:true,
+						data:{"user_role":user_role},
+						traditional: true,//这里设置为true,不用jquery转换
+						/* error:function(request){
+							alert("插入数据失败");
+						}, */
+						success:function(){
+							$('#dlg_boundRole').dialog('close');
+							alert("保存成功！");
+						},
+						error:function(XMLHttpRequest,textStatus,errorThrown){
+							alert(XMLHttpRequest.status);
+							alert(XMLHttpRequest.readyState);
+							alert(textStatus);
+							alert("插入数据失败");
+						},
+					
+					});
+
+				},
+				error:function(XMLHttpRequest,textStatus,errorThrown){
+					alert(XMLHttpRequest.status);
+					alert(XMLHttpRequest.readyState);
+					alert(textStatus);
+					alert("删除数据失败");
+				},
+			
+			});
+
+			//console.log(node);
+
+		}
+	</script>
+	</head>
+	<body>
+		<!--用户表  -->
+		<table id="user_dg" class="easyui-datagrid" style="width:auto;height:auto"
+				data-options="url:'ServletUserCx',rownumbers:'true', fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#toolbar'">
+			<thead>
+				<tr>
+					<th field="UserID" width="50">UserID</th>
+					<th field="Name" width="50">姓名</th>
+					<th field="UserName" width="50">用户名</th>
+				</tr>
+			</thead>
+		</table>
+		<!--表工具  -->
+		<div id="toolbar">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="newUser()">添加新用户</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="editUser()">修改密码</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="destroyUser()">删除用户</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-mini-add" plain="true" onclick="boundRole()">绑定角色</a>
+		</div>
+		<!--创建、编辑用户对话框  -->
+		<div id="dlg" class="easyui-dialog" style="width:400px;height:280px;padding:10px 20px"
+				 buttons="#dlg-buttons" closed="true">
+			<div class="ftitle">用户信息</div>
+			<form id="fm" method="post">
+				<div class="fitem">
+					<label>姓名:</label>
+					<input name="name" type="text" class="easyui-validatebox" data-options="required:true">
+				</div>
+				<div class="fitem">
+					<label>用户名:</label>
+					<input name="username" class="easyui-validatebox" data-options="required:true">
+				</div>
+				<div class="fitem">
+					<label>密 码:</label>
+					<input id="pwd" name="pwd" type="password" class="easyui-validatebox" data-options="required:true">
+				</div>
+				<div class="fitem">
+					<label>确认密码:</label>
+					<input id="qrpwd" name="qrpwd" class="easyui-validatebox" type="password" validType="qr['#pwd']" data-options="required:true">
+				</div>
+			</form>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="saveUser()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg').dialog('close')">取消</a>
+		</div>
+		<!--创建、编辑用户对话框  -->
+		<div id="dlg_passxg" class="easyui-dialog" style="width:400px;height:280px;padding:10px 20px"
+				 buttons="#dlg_passxg-buttons" closed="true">
+			<div class="ftitle" id="yhm"></div>
+			<form id="fm_passxg" method="post">
+				<div class="fitem">
+					<label>原密码:</label>
+					<input name="pwdy_passxg" class="easyui-validatebox" data-options="required:true">
+				</div>
+				<div class="fitem">
+					<label>密 码:</label>
+					<input id="pwde_passxg" name="pwde_passxg" type="password" class="easyui-validatebox" data-options="required:true">
+				</div>
+				<div class="fitem">
+					<label>确认密码:</label>
+					<input id="qrpwde_passxg" name="qrpwde_passxg" class="easyui-validatebox" type="password" validType="qr['#pwde_passxg']" data-options="required:true">
+				</div>
+			</form>
+		</div>
+		<div id="dlg_passxg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="passxg()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_passxg').dialog('close')">取消</a>
+		</div>
+		<!--绑定用户对话框  -->
+		<div id="dlg_boundRole" class="easyui-dialog" style="width:400px;height:400px;padding:10px 20px"
+				 buttons="#dlg-buttons" closed="true">
+			<ul id="tree_boundRole"></ul><!--定义用户绑定菜单的tree-->
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="save_boundRole()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_boundRole').dialog('close')">取消</a>
+		</div>
+	</body>
+</html>

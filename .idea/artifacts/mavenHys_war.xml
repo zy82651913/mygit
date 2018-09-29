@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="mavenHys:war">
+    <output-path>$PROJECT_DIR$/../mavenHys/target</output-path>
+    <root id="archive" name="mavenHys.war">
+      <element id="artifact" artifact-name="mavenHys:war exploded" />
+    </root>
+  </artifact>
+</component>

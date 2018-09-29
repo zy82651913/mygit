@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>化验室数据录入系统</title>
+	<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+	
+	<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+	<style type="text/css">
+		#fm,#fm_passxg{
+			margin:0;
+			padding:10px 30px;
+		}
+		.ftitle{
+			font-size:14px;
+			font-weight:bold;
+			color:#666;
+			padding:5px 0;
+			margin-bottom:10px;
+			border-bottom:1px solid #ccc;
+		}
+		.fitem{
+			margin-bottom:5px;
+		}
+		.fitem label{
+			display:inline-block;
+			width:80px;
+		}
+	</style>
+	<script type="text/javascript">
+	/*新建角色  */
+	function newRole(){
+		$('#dlg_role').dialog('open').dialog('setTitle','新建角色');
+		$('#fm').form('clear');
+		url = 'ServletRoleCr';
+	}
+	/*新建角色保存  */
+	function saveRole(){
+		$('#fm').form('submit',{
+			url: url,
+			onSubmit: function(){//使“validate”生效
+				return $(this).form('validate');
+			},
+			success: function(data){
+				if (data=="true"){
+					alert("角色名重复！");
+				} else {
+					$('#dlg_role').dialog('close');		// 关闭dialog
+					$('#role_dg').datagrid('reload');	// 重新加载表格
+					alert("保存成功");
+				}
+			}
+		});
+	}
+	/*删除角色  */
+	function destroyRole(){
+		var row = $('#role_dg').datagrid('getSelected');
+		if (row){
+			$.messager.confirm('Confirm','你确定要删除这个角色吗?',function(r){
+				if (r){
+					$.post('ServletRoleSc',{RoleID:row.RoleID},function(result){
+						if (result=="true"){
+							$('#role_dg').datagrid('reload');	// 重新加载用户数据
+							msg: "删除角色成功！"
+						} else {
+							$.messager.show({	// 展示错误提示
+								title: 'Error',
+								msg: "删除角色错误！"
+							});
+						}
+					});
+				}
+			});
+		}
+	}
+	/*修改角色*/
+	function editRole(){
+			var row = $('#role_dg').datagrid('getSelected');
+			if (row){
+				$('#dlg_role_xg').dialog('open').dialog('setTitle','修改角色');
+				$('#fm_role_xg').form('load',{rolename:row.RoleName,rolenote:row.RoleNote});
+			}
+		}
+	/*用户修改保存*/
+	function edit_saveRole(){
+		var row = $('#role_dg').datagrid('getSelected');
+		$('#fm_role_xg').form('submit', {
+		    url:"ServletRoleXg",
+		    onSubmit: function(param){
+				param.RoleID = row.RoleID;
+				return $(this).form('validate');
+		    },
+		    success: function(data){
+					$('#dlg_role_xg').dialog('close');		// 关闭dialog
+					$('#role_dg').datagrid('reload');	// 重新加载表格
+					if(data=="true"){alert("角色修改成功");}else{alert("角色修改成功");}
+			}
+		});
+	}
+	/*创建角色绑定菜单tree*/
+	function boundMenu() {
+		var RoleID = $('#role_dg').datagrid('getSelected').RoleID;
+		$('#dlg_boundMenu').dialog('open').dialog('setTitle','绑定菜单');
+		$("#tree_boundMenu").tree({
+			url:'ServletRoleTree',
+			checkbox:true,
+			cache:false,//不缓存
+			loadFilter: function(data){
+						i=0;
+						ii=0; 
+						//console.log(jsonbl(data));
+				        return jsonbl(data);   
+				    },
+			onLoadSuccess:function(){//Tree加载完成后绑定菜单
+				$.post('ServletRoleCheckbox',{RoleID:RoleID},function(result){
+					for(var j=0;j<result.length;j++){
+						var node = $('#tree_boundMenu').tree('find', result[j].NodeID);
+						$('#tree_boundMenu').tree('check',node.target); 
+					}
+					//nodey = $('#tree_boundMenu').tree('getChecked');//原始的Tree数组
+				});
+				 
+			}
+		});
+	}
+	//此处是easyui-tree的json格式  
+	var tree = {  
+	    id:'',  //节点的ID
+	    text:'',  //节点显示的文字
+	    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+	    checked:'',  //指示节点是否被选中。
+	    attributes:'',  //给一个节点添加的自定义属性。
+	    children:''  //定义了一些子节点的节点数组。
+	} 
+//此处是把后台传过来的json数据转成easyui规定的格式  
+	function bl(data,item){  
+	    var tree = new Object();
+		var children = [];
+			tree.id = item.NodeID;  
+		    tree.text = item.ShowName;  
+		    tree.state = 'open';  
+		    tree.checked = false;  
+		    tree.attributes = item.NodeUrl;
+			tree.children=node();
+			function node(){
+				for(var a=0;a<data.length;a++){
+					if(data[a].ParentID==item.NodeID){
+						var zjdobj = new Object();
+						zjdobj.id = data[a].NodeID;  
+					    zjdobj.text = data[a].ShowName;  
+					    zjdobj.state = 'open';  
+					    zjdobj.checked = false;  
+					    zjdobj.attributes = data[a].NodeUrl;
+						children[ii] = zjdobj;
+						ii++;		
+					}
+				} 
+
+					/* $.each(data,function(indexx,itemm){
+						if(itemm.ParentID == i+1){
+							zjdobj.id = itemm.NodeID;  
+						    zjdobj.text = itemm.ShowName;  
+						    zjdobj.state = 'open';  
+						    zjdobj.checked = 'false';  
+						    zjdobj.attributes = itemm.NodeUrl;
+							children[ii] = zjdobj;
+							ii++;	
+						}
+					}); */
+			return children;
+			}
+				return tree;
+	}  
+	function jsonbl(data){  
+	    var easyTree = []; 
+	    $.each(data,function(index,item){
+			if(item.ParentID==0){
+				easyTree[i] = bl(data,item);
+				i++;
+				ii=0;
+			}
+	     }); 
+	    return easyTree;  
+	}
+	/*绑定菜单的保存*/
+	function save_boundMenu() {
+		var node = $('#tree_boundMenu').tree('getChecked', ['checked','indeterminate']);//选择后的Tree数组
+		console.log(node);
+		var RoleID = $('#role_dg').datagrid('getSelected').RoleID;//选取的角色ID
+			/* for(var i=nodey.length-1;i>=0;i--){//去除原始根菜单
+				if(typeof(nodey[i].children) != "undefined"){
+					nodey.splice(i,1);
+				}
+			}
+			for(var i=node.length-1;i>=0;i--){//去除选择后根菜单
+				if(typeof(node[i].children) != "undefined"){
+					node.splice(i,1);
+				}
+			} */
+		/*合并角色ID（RoleID）和菜单ID(NodeID)成为一个数组*/
+		var menu_role = [];
+		menu_role[0]=RoleID;
+		for(var i=1;i<=node.length;i++){
+			menu_role[i]=node[i-1].id;
+		}
+		console.log(menu_role);
+		$.ajax({
+			type:"post",
+			url:"ServletBoundRole_Sc",
+			async:true,
+			data:{"menu_role":menu_role},
+			traditional: true,//这里设置为true,不用jquery转换
+			/* error:function(request){
+				alert("删除数据失败");
+			}, */
+			success:function(){
+				$.ajax({//插入数据
+					type:"post",
+					url:"ServletBoundRole_Cr",
+					async:true,
+					data:{"menu_role":menu_role},
+					traditional: true,//这里设置为true,不用jquery转换
+					/* error:function(request){
+						alert("插入数据失败");
+					}, */
+					success:function(){
+						$('#dlg_boundMenu').dialog('close');
+						alert("保存成功！");
+					},
+					error:function(XMLHttpRequest,textStatus,errorThrown){
+						alert(XMLHttpRequest.status);
+						alert(XMLHttpRequest.readyState);
+						alert(textStatus);
+						alert("插入数据失败");
+					},
+				
+				});
+
+			},
+			error:function(XMLHttpRequest,textStatus,errorThrown){
+				alert(XMLHttpRequest.status);
+				alert(XMLHttpRequest.readyState);
+				alert(textStatus);
+				alert("删除数据失败");
+			},
+		
+		});
+
+		//console.log(node);
+
+	}
+	</script>
+</head>
+<body>
+	<!--用户表  -->
+	<table id="role_dg" class="easyui-datagrid" style="width:auto;height:auto"
+			data-options="url:'ServletRoleCx',rownumbers:'true', fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#toolbar'">
+		<thead>
+			<tr>
+				<th field="RoleID" width="50">角色ID</th>
+				<th field="RoleName" width="50">角色名称</th>
+				<th field="RoleNote" width="50">角色备注</th>
+			</tr>
+		</thead>
+	</table>
+	<!--表工具  -->
+	<div id="toolbar">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="newRole()">添加新角色</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="editRole()">修改角色</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="destroyRole()">删除角色</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-mini-add" plain="true" onclick="boundMenu()">绑定菜单</a>
+	</div>
+	<!--创建用户对话框  -->
+		<div id="dlg_role" class="easyui-dialog" style="width:400px;height:280px;padding:10px 20px"
+				 buttons="#dlg-buttons" closed="true">
+			<div class="ftitle">角色信息</div>
+			<form id="fm" method="post">
+				<div class="fitem">
+					<label>角色名称:</label>
+					<input name="rolename" type="text" class="easyui-validatebox" data-options="required:true">
+				</div>
+				<div class="fitem">
+					<label>角色备注:</label>
+					<input name="rolenote" type="text" class="easyui-validatebox" data-options="required:true">
+				</div>
+			</form>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="saveRole()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_role').dialog('close')">取消</a>
+		</div>
+		<!--编辑用户对话框  -->
+		<div id="dlg_role_xg" class="easyui-dialog" style="width:400px;height:280px;padding:10px 20px"
+				 buttons="#dlg-buttons" closed="true">
+			<div class="ftitle">角色信息</div>
+			<form id="fm_role_xg" method="post">
+				<div class="fitem">
+					<label>角色名称:</label>
+					<input name="rolename" type="text" class="easyui-validatebox" data-options="required:true">
+				</div>
+				<div class="fitem">
+					<label>角色备注:</label>
+					<input name="rolenote" type="text" class="easyui-validatebox" data-options="required:true">
+				</div>
+			</form>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="edit_saveRole()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_role').dialog('close')">取消</a>
+		</div>
+		<!--绑定菜单对话框  -->
+		<div id="dlg_boundMenu" class="easyui-dialog" style="width:400px;height:400px;padding:10px 20px"
+				 buttons="#dlg-buttons" closed="true">
+			<ul id="tree_boundMenu"></ul><!--定义用户绑定菜单的tree-->
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="save_boundMenu()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_boundMenu').dialog('close')">取消</a>
+		</div>
+		
+</body>
+</html>

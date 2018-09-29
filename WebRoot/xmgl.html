@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+		
+	<!--解决双滚动条-->
+	<style type="text/css">
+       	#center-tabs .tabs-panels>.panel>.panel-body {  
+	    	overflow: hidden;  
+	    } 
+    </style>
+    <script type="text/javascript">
+  //加载完成后运行
+    $(document).ready(function(){
+		$('#tree_jzcj').tree({
+			url:'ServletCheJianTree',
+			cache:false,
+			loadFilter: function(data){
+				//console.log(jsonbl(data));
+		        return jsonbl(data);   
+		    },
+			onClick: function(node){//单击节点运行
+				if ($(this).tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
+					$('#xm_dg').datagrid('clearSelections'); //取消选择行
+					$('#sr_dg').datagrid('loadData', { total: 0, rows: [] }); //清空输入指标数据表
+					$('#sc_dg').datagrid('loadData', { total: 0, rows: [] }); //清空输出指标数据表
+					$('#tt').tabs('select',0);//单击车间树节点时，选中输入指标Tabs
+					xmdg();
+				} else {
+					$('#xm_dg').datagrid('loadData', { total: 0, rows: [] }); //清空输入项目数据表
+					$('#sr_dg').datagrid('loadData', { total: 0, rows: [] }); //清空输入指标数据表
+					$('#sc_dg').datagrid('loadData', { total: 0, rows: [] }); //清空输出指标数据表
+					return;
+				}
+			}
+		});
+		var tree = {  
+			    id:'',  //节点的ID
+			    text:'',  //节点显示的文字
+			    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+			    checked:'',  //指示节点是否被选中。
+			    attributes:'',  //给一个节点添加的自定义属性。
+			    children:''  //定义了一些子节点的节点数组。
+			}
+		function jsonbl(data){  
+			    var easyTree = [];
+				var jizhanid = null; 
+				var i=0;
+			    $.each(data,function(index,item){
+					ii=0;
+					if(item.jizhanid != jizhanid){
+						easyTree[i] = bl(data,item);
+						jizhanid = item.jizhanid;
+						i++;
+					}
+			     }); 
+			    return easyTree;  
+			}
+		//此处是把后台传过来的json数据转成easyui规定的格式  
+		function bl(data,item){  
+		    var tree = new Object();
+			var jizhanid = item.jizhanid;
+			var children = [];
+				tree.id = item.jizhanid;  
+			    tree.text = item.jizhanname;  
+			    tree.state = 'open';  
+			    tree.checked = false;
+				tree.attributes = ''; 
+				tree.children=node();
+				function node(){
+					for(var a=0;a<data.length;a++){
+						if(data[a].jizhanid==jizhanid){
+							var zjdobj = new Object();//子节点对象
+							zjdobj.id = data[a].chejianid;  
+						    zjdobj.text = data[a].chejianname;  
+						    zjdobj.state = 'open';  
+						    zjdobj.checked = false;
+							zjdobj.attributes = '';  
+							children[ii] = zjdobj;
+							ii++;
+							
+						}
+					} 
+				return children;
+				}
+					return tree;
+		}
+    });
+ function xmdg(){
+	 var node = $('#tree_jzcj').tree('getSelected').id
+	$('#xm_dg').edatagrid({
+		url: 'ServletXmCx?id='+ node,
+		saveUrl: 'ServletXmSave?chejianid='+ node,
+		updateUrl:'ServletXmUpdate',
+		destroyUrl: 'ServletXmDelete',
+		onError:function(index, row){
+			alert("服务器错误！");
+		},
+		onSave:function(index, row){
+			$('#xm_dg').edatagrid('reload');
+		},
+		onDestroy:function(index, row){
+			$('#sr_dg').edatagrid('reload');
+			$('#sc_dg').edatagrid('reload');
+		},
+		onSelect:function(rowIndex,rowData){//点击项目列表读取输入输出指标数据
+			/*输入指标*/
+			$('#sr_dg').edatagrid({
+				url: 'ServletXm_SrCx?xmid='+ rowData.id,
+				saveUrl: 'ServletXm_SrSave?xmid='+ rowData.id,
+				updateUrl:'ServletXm_SrUpdate',
+				destroyUrl: 'ServletXm_SrDelete',
+				onSave:function(index, row){
+					$('#sr_dg').edatagrid('reload');
+				}
+			});
+			/*输出指标*/
+			$('#sc_dg').edatagrid({
+				url: 'ServletXm_ScCx?xmid='+ rowData.id,
+				saveUrl: 'ServletXm_ScSave?xmid='+ rowData.id,
+				updateUrl:'ServletXm_ScUpdate',
+				destroyUrl: 'ServletXm_ScDelete',
+				onSave:function(index, row){
+					$('#sc_dg').edatagrid('reload');
+				}
+			});
+			$('#sc_dg').edatagrid({
+				onDblClickCell:function(rowIndex,field,value){
+					//$(this).datagrid('beginEdit', rowIndex);
+					ed = $(this).datagrid('getEditor', {index:rowIndex,field:field});//公式字段
+					var datasr = $('#sr_dg').datagrid('getData').rows;//获取输入指标
+					var datasc = $('#sc_dg').datagrid('getData').rows;//获取输出指标
+					var mathclass = $('#sc_dg').datagrid('getData').rows[rowIndex].mathclass;//获得需要编辑公式的类型
+					index = rowIndex;//全局变量，选择的输出指标的index，编辑公示后，通过这个index存到输出指标公式的单元格中
+					//var row = $('#sc_dg').datagrid('getSelected');//选择输出指标表格的数据
+					if(field=="math"){//如果选择的是计算公式这一列，那么弹出编辑公式对话框
+						if(mathclass=="曲线公式"){//曲线类型为曲线公式
+							$('#dlg_math_qx').dialog('open').dialog('setTitle','曲线编辑');
+							//创建曲线对应指标表
+							$('#mathqxdy_dg').datagrid({
+								columns:[[{field:'srname',width:10,align:'center'}]],//创建字段
+								data:datasr//获得数据
+							});
+							//创建曲线公式表
+							$('#quxian_dg').datagrid({
+								columns:[[{field:'qx_name',width:10,align:'center'}]],//创建字段
+								url:"ServletQx_Cx"
+							});
+						}else{
+							$('#dlg_math').dialog('open').dialog('setTitle','编辑公式');
+							$('#math').focus();//文本框获得焦点
+							if(value){
+								$('#math').val(value);
+							}else{
+								$('#math').val("");
+							}
+							$('#mathsr_dg').datagrid({//创建公式编辑对话框中的输入指标
+								columns:[[{field:'zbbh',width:10,align:'center'}]],//创建字段
+								data:datasr,//获得数据
+								/*点击指标公式对话框中输入指标表把输入指标填到文本框中*/
+								onClickRow:function(rowIndex,rowData){//点击输入指标表中的一行，把输入指标添入文本框
+									var str;//str为文本框字符串
+									str = $('#math').val();
+									$('#math').val(str + rowData.srname);
+									$('#math').focus();//文本框获得焦点
+								}
+							});
+							$('#mathsc_dg').datagrid({//创建公式编辑对话框中的输出指标
+								columns:[[{field:'zbbh',width:10,align:'center'}]],
+								data:datasc,
+								/*点击指标公式对话框中输出指标表把输出指标填到文本框中*/
+								onClickRow:function(rowIndex,rowData){//点击输出指标表中的一行，把输出指标添入文本框
+									var str;//str为文本框字符串
+									str = $('#math').val();
+									$('#math').val(str + rowData.zb_name);
+									$('#math').focus();//文本框获得焦点
+								}
+							});
+							$('#mathxt_dg').datagrid({//创建公式编辑对话框中的输出指标
+								url:'ServletXm_XtmathXc?zb_name='+datasc[index].zb_name,
+								columns:[[
+								          {field:'math',width:10,align:'center'}
+										]],
+								onClickRow:function(rowIndex,rowData){//点击相同公式表中的一行，把相同公式添入文本框
+									$('#math').val("");
+									$('#math').val(rowData.math);
+								}
+							});
+							//console.log(rowData);
+						}
+					}
+						
+				}
+			});
+		}
+	});
+};
+		/*计算公式编辑保存*/
+		function save_math(){
+			var str = $('#math').val();
+			var k1=0,k2=0;//k1正括号k2反括号
+			for(var i=0;i<str.length;i++){//遍历字符串查找括号
+				if(str.charAt(i)=="("){
+					k1++;
+				}else if(str.charAt(i)==")"){
+					k2++;
+				}
+			}
+			if(k1!=k2){
+				$.messager.alert('错误','括号不匹配');
+				return;
+				}
+			$(ed.target).val(str);
+			$('#dlg_math').dialog('close');
+		}
+		/*曲线公式保存*/
+		function sava_qxmath(){
+			try {
+				var select_qxdyzb=$("#mathqxdy_dg").datagrid("getSelected").srname;//选中的曲线对应指标
+				var select_qx=$("#quxian_dg").datagrid("getSelected").qx_name;//选中的曲线
+				var ed_qxdyzb = $('#sc_dg').datagrid('getEditor', {index:index,field:'qxdyzb'});
+				$(ed.target).val(select_qx);
+				$(ed_qxdyzb.target).val(select_qxdyzb);
+				$('#dlg_math_qx').dialog('close');
+			} catch (e) {
+				if(select_qxdyzb==undefined){
+					alert("选择曲线对应指标！");
+					return;
+				}
+				if(select_qx==undefined){
+					alert("选择一条曲线！");
+					return;
+				} 
+			}
+		}
+		/*相同输入指标*/
+		function samesrzb(){
+			try {
+				var xmid = $("#xm_dg").datagrid("getSelected").id
+				$("#dlg_xtsr").dialog('open').dialog('setTitle','相同公式');
+			} catch (e) {
+					alert("选择一个项目！");
+			}
+			var content = '<iframe name="xtsr" scrolling="auto" frameborder="0" src="xtsrzb.html" style="width:100%;height:100%;"></iframe>';
+			$('#dlg_xtsr').append(content);
+		}
+		/*相同输入指标保存*/
+		function samesrzbSave() {
+			var xmid = $("#xm_dg").datagrid("getSelected").id
+			var aa = xtsr.window.cd();//获取子窗口的数据
+			if (aa=='') {alert("没有选择输入指标!");return;}
+			var a = {
+				"xmid":xmid,
+				"aa":aa
+			}
+			var json=JSON.stringify(a);//把js对象转换成json
+			$.ajax({
+				type:"post",
+				url:"ServletXm_xtsrzbSave",
+				async:true,
+				data:{"json":json},
+				success:function(data){
+					$('#sr_dg').edatagrid('reload');
+					$('#dlg_xtsr').dialog('close');
+				}
+			});
+		}
+		/*相同输出指标*/
+		function samesczb(){
+			try {
+				var xmid = $("#xm_dg").datagrid("getSelected").id
+				$("#dlg_xtsc").dialog('open').dialog('setTitle','相同公式');
+			} catch (e) {
+					alert("选择一个项目！");
+			}
+			var content = '<iframe name="xtsc" scrolling="auto" frameborder="0" src="xtsczb.html" style="width:100%;height:100%;"></iframe>';
+			$('#dlg_xtsc').append(content);
+		}
+		/*相同输出指标保存*/
+		function samesczbSave() {
+			var xmid = $("#xm_dg").datagrid("getSelected").id
+			var aa = xtsc.window.cd();//获取子窗口的数据
+			if (aa=='') {alert("没有选择输入指标!");return;}
+			var a = {
+				"xmid":xmid,
+				"aa":aa
+			}
+			var jsonSc=JSON.stringify(a);//把js对象转换成json
+			$.ajax({
+				type:"post",
+				url:"ServletXm_xtsczbSave",
+				async:true,
+				data:{"jsonSc":jsonSc},
+				success:function(data){
+					$('#sc_dg').edatagrid('reload');
+					$('#dlg_xtsc').dialog('close');
+				}
+			});
+		}
+    </script>
+	</head>
+<body class="easyui-layout">
+<!-- 菜单 -->
+   <div data-options="region:'west'" style="width:150px;">
+	<div style="height: 20px;background-color: #eee;font-size: 14px;font-weight: 700;padding: 3px;text-align: center;">车间树</div>
+	<ul id="tree_jzcj" class="easyui-tree" style="padding: 5px;"></ul><!--技站车间关系tree-->
+   </div>
+   <!-- 内容显示区 -->
+   <div data-options="region:'center',border: false" style="background:#eee;">
+    <div data-options="region:'north',border: false" style="height:50%;"><!--项目列表区-->
+   	<table id="xm_dg" class="easyui-datagrid" style="width:auto;height:auto;" idField="id"
+		data-options="rownumbers:'true', border: false, fit:'true', fitColumns:true, singleSelect:true,toolbar:'#toolbar'">
+	<thead>
+		<tr>
+			<th field="id" width="10">项目ID</th>
+			<th field="pxid" width="10" editor="{type:'validatebox',options:{required:true}}">排序ID</th>
+			<th field="name" width="20" editor="{type:'validatebox',options:{required:true}}">项目名称</th>
+			<th field="xmclass" width="10" editor="{type:'combobox',options:{editable:false,valueField:'val',textField:'text',data:[{text:'液相',val:'1'},{text:'固相',val:'0'}] ,panelHeight:'auto',required:true}}">项目类型</th>
+			<th field="zhbc" width="20" editor="{type:'validatebox',options:{required:true}}">滞后班次</th>
+			<th field="yn" width="20" editor="{type:'combobox',options:{editable:false,valueField:'val',textField:'text',url:'ServletCombobox',panelHeight:'auto',required:true}}">是否可用</th>
+		</tr>
+	</thead>
+	</table>
+	<!--表工具  -->
+	<div id="toolbar">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#xm_dg').edatagrid('addRow',{row:{zhbc:0,yn:1,xmclass:1}});$('#tt').tabs('select',0);">新建项目</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#xm_dg').edatagrid('destroyRow')">删除项目</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#xm_dg').edatagrid('saveRow')">保存</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#xm_dg').edatagrid('cancelRow')">取消</a>
+	</div>
+    </div>
+    <div data-options="region:'south',border: false, fit:'true'" style="height:50%"><!--指标定制区-->
+	<!--输入指标输出指标Tab -->
+	<div id="tt" class="easyui-tabs" data-options="border: false, fit:'true'" style="width:auto;height:auto;">
+	    <div title="输入指标" style="overflow:auto;display:none;">
+	    	<!--输入指标表-->
+			<table id="sr_dg" class="easyui-datagrid" style="width:auto;height:auto;" idField="id"
+					data-options="rownumbers:'true', border: false, fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#sr_toolbar'">
+			<thead>
+				<tr>
+					<th field="id" width="10" hidden="true">输入指标ID</th><!--隐藏-->
+					<th field="xmid" width="10" hidden="true">项目ID</th><!--隐藏-->
+					<th field="pxid" width="10" editor="{type:'validatebox',options:{required:true}}">排序ID</th>
+					<th field="srname" width="10" editor="{type:'validatebox',options:{required:true}}">输入指标名称</th>
+					<th field="zbbh" width="10" editor="{type:'validatebox',options:{required:true}}">指标编号</th>
+					<th field="csvalue" width="20" editor="{type:'text'}">初始值</th>
+				</tr>
+			</thead>
+			</table>
+			<!--表工具  -->
+			<div id="sr_toolbar">
+				<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#sr_dg').edatagrid('addRow')">添加</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#sr_dg').edatagrid('destroyRow')">删除</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#sr_dg').edatagrid('saveRow')">保存</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#sr_dg').edatagrid('cancelRow')">取消</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-mini-add" plain="true" onclick="samesrzb()">相同输入指标</a>
+			</div>
+	    </div>
+	    <div title="输出指标" style="overflow:auto;display:none;">
+			<!--输出指标表-->
+			<table id="sc_dg" class="easyui-datagrid" style="width:auto;height:auto;" idField="id"
+					data-options="rownumbers:'true', border: false, fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#sc_toolbar'">
+			<thead>
+				<tr>
+					<th field="id" width="5" hidden="true">输出指标ID</th><!--隐藏-->
+					<th field="xmid" width="5" hidden="true">项目ID</th><!--隐藏-->
+					<th field="pxid" width="5" editor="{type:'validatebox',options:{required:true}}">排序ID</th>
+					<th field="zb_name" width="10" editor="{type:'validatebox',options:{required:true}}">输出指标名称</th>
+					<th field="zbbh" width="5" editor="{type:'validatebox',options:{required:true}}">指标编号</th>
+					<th field="mathclass" width="5" editor="{type:'combobox',options:{editable:false,valueField:'val',textField:'text',url:'ServletCombobox_MathClass',panelHeight:'auto',required:true}}">公式类型</th>
+					<th field="math" width="20" editor="{type:'text'}">计算公式</th>
+					<th field="qxdyzb" width="5" editor="{type:'text'}">曲线对应指标</th>
+					<th field="xsdws" width="5" editor="{type:'validatebox',options:{required:true}}">小数点位数</th>
+					<th field="bbyn" width="10" editor="{type:'combobox',options:{editable:false,valueField:'val',textField:'text',url:'ServletCombobox_Bbyn',panelHeight:'auto',required:true}}">班报是否显示</th>
+				</tr>
+			</thead>
+			</table>
+			<!--表工具  -->
+			<div id="sc_toolbar">
+				<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#sc_dg').edatagrid('addRow',{row:{xsdws:2,bbyn:1,mathclass:1}})">添加</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#sc_dg').edatagrid('destroyRow')">删除</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#sc_dg').edatagrid('saveRow')">保存</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#sc_dg').edatagrid('cancelRow')">取消</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-mini-add" plain="true" onclick="samesczb()">相同输出指标</a>
+				<lable style="height: auto;width: auto;"></lable>
+				<label style="font-size: 16px;color: red;vertical-align: middle;display: inline-block; float: right; margin-right: 20px;">先设置指标名称，公式类型，保存后再设置公式！</label>
+			</div>
+	    </div>
+	</div>
+    </div>
+   </div>
+   <!--输出指标一般公式对话框  -->
+		<div id="dlg_math" class="easyui-dialog" style="width:900px;height:600px;"
+				 buttons="#dlg-buttons" closed="true">
+			 <div class="easyui-layout" data-options="fit:true" style="height: 100%;">
+				<div data-options="region:'west',title:'输入指标',collapsible:false" style="width:120px;">
+					<!--公式对话框中的输入指标，获取输入指标-->
+					<table id="mathsr_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:false,scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'center',title:'输出指标'" style="width:120px;">
+					<!--公式对话框中的输出指标，获取输出指标-->
+					<table id="mathsc_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:false,scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'east',title:'相同公式',collapsible:false" style="width:630px;">
+					<!--公式对话框中的相同公式，获取选定项目的公式，去除重复-->
+					<table id="mathxt_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:false,scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'south',border:false" style="height:80px;">
+					<div class="easyui-panel" title="计算公式" data-options="fit:true,border:false">
+						<input type="text" id="math" size="60" style="height: 97%;width: 100%;font-size: 18px;overflow: auto;border: 0px;">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="save_math()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_math').dialog('close')">取消</a>
+		</div>
+	<!--输出指标曲线公式对话框  -->
+		<div id="dlg_math_qx" class="easyui-dialog" style="width:600px;height:400px;"
+				 buttons="#dlg-buttons" closed="true">
+			 <div class="easyui-layout" data-options="fit:true" style="height: 100%;">
+				<div data-options="region:'west',title:'曲线对应指标',collapsible:false" style="width:120px;">
+					<!--公式对话框中的输入指标，获取输入指标-->
+					<table id="mathqxdy_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:false,scrollbarSize:0">
+					</table>
+				</div>
+				<div data-options="region:'center',title:'选择曲线',collapsible:false" style="width:630px;">
+					<!--曲线表-->
+					<table id="quxian_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:false,scrollbarSize:0">
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="sava_qxmath()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_math_qx').dialog('close')">取消</a>
+		</div>
+	<!--相同输入指标对话框-->
+		<div id="dlg_xtsr" name="xtsr" class="easyui-dialog" style="width:600px;height:500px;overflow:hidden;"
+				 buttons="#dlg-buttons" closed="true">
+			 
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="samesrzbSave()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_xtsr').dialog('close')">取消</a>
+		</div>
+		<!--相同输入指标对话框-->
+		<div id="dlg_xtsc" name="xtsc" class="easyui-dialog" style="width:600px;height:500px;overflow:hidden;"
+				 buttons="#dlg-buttons" closed="true">
+			 
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="samesczbSave()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_xtsc').dialog('close')">取消</a>
+		</div>
+</body>
+</html>

@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<META HTTP-EQUIV="pragma" CONTENT="no-cache"> 
+		<META HTTP-EQUIV="Cache-Control" CONTENT="no-cache, must-revalidate"> 
+		<META HTTP-EQUIV="expires" CONTENT="0">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<!--解决双滚动条-->
+	<!-- <style type="text/css">
+       	#center-tabs .tabs-panels>.panel>.panel-body {  
+	    	overflow: hidden;  
+	    } 
+    </style> -->
+    <style>
+    .datagrid-cell,.datagrid-header .datagrid-cell span{font-size: 14px;};
+    </style>
+    <script type="text/javascript">
+  //加载完成后运行
+    $(document).ready(function(){//初始化日期控件
+    	$("#zhbc_lable").hide();//隐藏滞后班次标签
+    	$("#zhbc_tt").next().hide();//隐藏滞后班次textbox
+    	function myformatter(date){  
+    		    var y = date.getFullYear();  
+    		    var m = date.getMonth()+1;  
+    		    var d = date.getDate();  
+    		    return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);  
+    		}
+    	function myparser(s){  
+    		    //if (!s) return new Date($.ajax({async: false}).getResponseHeader("Date"));  
+    			if (!s) return new Date();
+    		    var ss = (s.split('-'));  
+    		    var y = parseInt(ss[0],10);  
+    		    var m = parseInt(ss[1],10);  
+    		    var d = parseInt(ss[2],10);  
+    		    if (!isNaN(y) && !isNaN(m) && !isNaN(d)){  
+    		        return new Date(y,m-1,d);  
+    		    } else {  
+    		        return new Date();  
+    		    }  
+    		}
+    	$('#banci').combobox({//班次组合框事件
+    		onLoadSuccess: function(none){
+    			var mydate = new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"));//当前时间
+    			var hours = parseInt(mydate.getHours());//当前小时,转换为int
+    			if (hours>=0 && hours<8) {//根据时间设置班次
+    				$('#banci').combobox('setValue', '1');
+				} else if(hours>=8 && hours<16) {
+					$('#banci').combobox('setValue', '2');
+				} else if(hours>=16 && hours<24){
+					$('#banci').combobox('setValue', '3');
+				}
+    		},
+    		onHidePanel: function (re){
+    			$('#bz_combobox').combobox('setValue',"");//设置备注
+    			var node = $('#tree_xmlb').tree('getSelected');
+    			jiazai_dg(node);
+    			if ($("tree_xmlb").tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
+    				var xmclass = node.xmclass;//获得选择树的项目类型
+    				if (xmclass == 0) {//固相
+							var zhbc = parseInt(node.zhbc);//项目的滞后班次
+							var date = $('#sjlr_datebox').datebox('getValue');//获得当前选择的日期字符串
+							var bc = parseInt($('#banci').combobox('getValue'));//获得当前选择的班次
+							date = new Date(Date.parse(date.replace(/-/g, "/")));//字符串转为日期格式
+							var mm = date.getMonth()+1;//获得当前选择的月份
+							var dd = date.getDate();//获得当前选择的日
+							var v = parseInt(Math.abs((zhbc-bc)/3))+1;
+							if ((bc-zhbc) > 0) {//项目班次减去滞后班次
+								bc = bc-zhbc;
+							} else if ((bc-zhbc) == 0) {
+								bc = 3;
+								date.setDate(dd-1);//设置天数减1
+							} else if ((bc-zhbc) < 0) {
+								bc = 3-(Math.abs(bc-zhbc)%3);
+								date.setDate(dd-v);//日期减去滞后班次
+							}
+							mm = date.getMonth()+1;
+							dd = date.getDate();
+							dataSrt = mm + "-"+ dd + "-" + bc;
+							$('#zhbc_tt').textbox('setValue', dataSrt);
+							sc_datagrid();
+					} else {//液相
+						sc_datagrid();
+					}
+    			}
+			}
+    	});
+    	$('#ss').textbox('textbox').bind('keyup',function(e){//按键回车移除焦点
+    		if (e.key == 'Enter'){
+    			//$('#sjlr_datebox').blur();
+    			$('#ss').textbox('textbox').blur();
+    		}
+    	});
+    	$('#ss').textbox('textbox').bind('blur',function(e){//移除焦点后格式化字符串为12:12格式
+    		var v = $('#ss').val();//获得时间框的值
+    		if (v.length==0) {//如果时间框为空
+    			$('#ss').textbox('setValue', new Date().getHours()+':00');
+    			$('#ss').textbox('textbox').select();
+    			return;
+			}
+    		try {
+    			var reg = /^(?:(?:[01]\d|2[0-3])|\d\b)(?::?[0-5]\d)?/;//验证时间框的正则表达式
+        		var bl = reg.test(v);
+        		var str = reg.exec(v)[0];
+        		if (bl==true) {//整理time格式
+        			//console.log(v.indexOf(":"));
+    				if (v.length == 3 || v.length == 2) {
+						str = str + ":00";
+    					$('#ss').textbox('setValue', str);
+    					return;
+    				} else if (v.length == 1) {
+    					str = "0" + str + ":00";
+    					$('#ss').textbox('setValue', str);
+    					return;
+    				} else if (v.length == 4) {
+    					if (v.indexOf(":")==-1) {
+    						str = v[0]+v[1]+":"+v[2]+v[3];
+        					$('#ss').textbox('setValue', str);
+						}else{
+							if (v.indexOf(":")==1) {
+								str = "0" + str;
+		    					$('#ss').textbox('setValue', str);
+							}else if(v.indexOf(":")==2) {
+								str = str +":00";
+								$('#ss').textbox('setValue', str);
+							}else if(v.indexOf(":")>2) {
+								$.messager.alert('时间点错误','不能输入非数字或空，输入正确格式如：2300、2330、0900、0930！');
+	        					$('#ss').textbox('setValue', new Date().getHours()+':00');
+							}
+						} 
+    					
+    					return;
+    				} else if (v.length == 5) {
+    					if (v.indexOf(":")==-1) {
+    						$.messager.alert('时间点错误','不能输入非数字或空，输入正确格式如：2300、2330、0900、0930！');
+        					$('#ss').textbox('setValue', new Date().getHours()+':00');
+						} else if (v.indexOf(":")==0 || v.indexOf(":")==1 || v.indexOf(":")>2){
+							$.messager.alert('时间点错误','不能输入非数字或空，输入正确格式如：2300、2330、0900、0930！');
+        					$('#ss').textbox('setValue', new Date().getHours()+':00');
+						}
+    				} else if (v.length > 5) {
+    					$.messager.alert('时间点错误','不能输入非数字或空，输入正确格式如：2300、2330、0900、0930！');
+    					$('#ss').textbox('setValue', new Date().getHours()+':00');
+    				}
+    			} else {
+    				$.messager.alert('时间点错误','输入正确格式如：23:00、2330、0900、0930');
+    			}
+        		//console.log(reg.exec(v)[0]);
+			} catch (e) {
+				$.messager.alert('时间点错误','不能输入非数字或空，输入正确格式如：2300、2330、0900、0930！');
+				$('#ss').textbox('setValue', new Date().getHours()+':00');
+			}
+    	});
+    	$("#sjlr_datebox").datebox({
+    		onSelect: function(){//录入日期更改刷新滞后班次文本框
+    			var node = $("#tree_xmlb").tree("getSelected");
+    			var xmclass = node.xmclass;//获得选择树的项目类型
+    			jiazai_dg(node);
+    			if (xmclass == 1) {
+    				sc_datagrid();
+				} else if (xmclass == 0) {
+					var zhbc = parseInt(node.zhbc);//项目的滞后班次
+					var date = $('#sjlr_datebox').datebox('getValue');//获得当前选择的日期字符串
+					var bc = parseInt($('#banci').combobox('getValue'));//获得当前选择的班次
+					date = new Date(Date.parse(date.replace(/-/g, "/")));//字符串转为日期格式
+					var mm = date.getMonth()+1;//获得当前选择的月份
+					var dd = date.getDate();//获得当前选择的日
+					var v = parseInt(Math.abs((zhbc-bc)/3))+1;
+					if ((bc-zhbc) > 0) {//项目班次减去滞后班次
+						bc = bc-zhbc;
+					} else if ((bc-zhbc) == 0) {
+						bc = 3;
+						date.setDate(dd-1);//设置天数减1
+					} else if ((bc-zhbc) < 0) {
+						bc = 3-(Math.abs(bc-zhbc)%3);
+						date.setDate(dd-v);//日期减去滞后班次
+					}
+					mm = date.getMonth()+1;
+					dd = date.getDate();
+					dataSrt = mm + "-"+ dd + "-" + bc;
+					$('#zhbc_tt').textbox('setValue', dataSrt);
+					sc_datagrid();
+				}
+    		}
+    	});
+    	//$("#sjlr_datebox").datebox("setValue",myformatter(new Date()));//系统时间
+    	$("#sjlr_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
+    	$('#ss').textbox('setValue', new Date().getHours()+':00');//设置时间微调器为当前时间
+		$("#tree_xmlb").tree({//项目列表
+			url:"ServletXMLB_Tree",
+			onLoadSuccess: function () {$(this).tree('collapseAll')},//加载完毕后关闭所有节点
+			//onDblClick: function (node){$(this).tree('toggle',node.target)},//双击打开节点
+			onSelect: function(node){//单击节点运行
+				$("#sjlr_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"))));//点击项目重置时间
+				$('#bz_combobox').combobox('setValue',"");//设置备注
+				//console.log($.ajax({async: false, cache: false}).getResponseHeader("Date"));
+    			var mydate = new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"));//当前时间
+    			var hours = parseInt(mydate.getHours());//当前小时,转换为int
+    			if (hours>=0 && hours<8) {//根据时间设置班次
+    				$('#banci').combobox('setValue', '1');
+				} else if(hours>=8 && hours<16) {
+					$('#banci').combobox('setValue', '2');
+				} else if(hours>=16 && hours<24){
+					$('#banci').combobox('setValue', '3');
+				}
+    			jiazai_dg(node);
+			}
+		});
+    	function jiazai_dg(node){//加载表格数据
+    		if ($(this).tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
+				$('#sjlr_layout').layout('panel', 'north').panel({ title: '数据录入——'+node.text });
+				$('#bz_combobox').combobox({//加载备注
+				    url:'ServletBeiZhu_Combobox?id='+node.id,
+				    valueField:'id',
+				    textField:'text'
+				});
+				if (node.xmclass == 0) {//如果项目类型为“固相”，工具栏加入滞后班次，输出列表加入滞后班次
+					$("#zhbc_lable").show();
+					$("#zhbc_tt").next().show();
+					var zhbc = parseInt(node.zhbc);//项目的滞后班次
+					var date = $('#sjlr_datebox').datebox('getValue');//获得当前选择的日期字符串
+					var bc = parseInt($('#banci').combobox('getValue'));//获得当前选择的班次
+					date = new Date(Date.parse(date.replace(/-/g, "/")));//字符串转为日期格式
+					var mm = date.getMonth()+1;//获得当前选择的月份
+					var dd = date.getDate();//获得当前选择的日
+					var v = parseInt(Math.abs((zhbc-bc)/3))+1;
+					if ((bc-zhbc) > 0) {//项目班次减去滞后班次
+						bc = bc-zhbc;
+					} else if ((bc-zhbc) == 0) {
+						bc = 3;
+						date.setDate(dd-1);//设置天数减1
+					} else if ((bc-zhbc) < 0) {
+						bc = 3-(Math.abs(bc-zhbc)%3);
+						date.setDate(dd-v);//日期减去滞后班次
+					}
+					mm = date.getMonth()+1;
+					dd = date.getDate();
+					dataSrt = mm + "-"+ dd + "-" + bc;
+					$('#ss_lable').hide();
+					$('#ss').next().hide();//隐藏时间点
+					$('#zhbc_tt').textbox('setValue', dataSrt);
+				} else {
+					$('#ss_lable').show();
+					$('#ss').next().show();//显示时间点
+					$("#zhbc_lable").hide();
+					$("#zhbc_tt").next().hide();//隐藏滞后班次textbox
+					$("#zhbc_tt").textbox('setValue','');//滞后班次文本框赋值为空
+				}
+				shuju_lr (node.id);//加载数据录入表格和按钮
+				shuju_sc(node.id);//加载数据输出表格和数据表格
+				sc_datagrid();//加载数据表格
+				$('#sjdb_banci').combobox({//数据对比班次更改重新获取对比数据
+					onHidePanel: function (re){
+						var none = $("#tree_xmlb").tree('getSelected');
+				  		var xm_id = none.id;
+				  		var hysj_date = $('#sjdb_datebox').datebox('getValue');
+				  		var hy_bc = $('#sjdb_banci').combobox('getValue');
+						sjdb_dg_(xm_id,hysj_date,hy_bc);
+					}
+				});
+				sjdb_date_bc();
+			}else{
+				$("#tree_xmlb").tree('toggle',node.target),//打开节点
+				$("#sr_thead").empty();//点击的不是叶节点清除表头
+		  		$("#sr_tbody").empty();//清除表
+		  		$("#sc_thead").empty();//点击的不是叶节点清除表头
+		  		$("#sc_tbody").empty();//清除表
+		  		$("#sr_savebtn").empty();//清除保存按钮
+				$('#sjlr_layout').layout('panel', 'north').panel({ title: '数据录入' });
+			}
+    	}
+		$("#sjlr_layout").layout({
+			onCollapse: function(){
+				var sc_table = $("#sc_table").height();
+		  		var sc_lay = $("#sc_lay").height();
+		  		$("#sczb_dg").edatagrid({height:sc_lay-sc_table-1});//指标对比面板折叠重新设置输出指标datagrid的高度
+			},
+			onExpand: function(){
+				var sc_table = $("#sc_table").height();
+		  		var sc_lay = $("#sc_lay").height();
+		  		$("#sczb_dg").edatagrid({height:sc_lay-sc_table-1});//指标对比面板折叠重新设置输出指标datagrid的高度
+			}
+		});
+    });
+  	var sr_data;
+  	var sc_data;
+  	function shuju_lr (xmid){//点击项目输出数据录入
+  		$("#sr_thead").empty();//点击的不是叶节点清除表头
+  		$("#sr_tbody").empty();//清除表
+  		$("#sc_thead").empty();//点击的不是叶节点清除表头
+  		$("#sc_tbody").empty();//清除表
+  		$("#sr_savebtn").empty();//清除保存按钮
+  		$.ajax({
+			type:"post",
+			url:"ServletXm_SrCx?xmid="+xmid,
+			async:true,
+			success:function(data){
+				sr_data = data;
+				for (var i = 0; i < data.length; i++) {
+					var id = data[i].zbbh;//输入指标文本框ID
+					var name = data[i].srname;//输入指标名称
+					var csvalue = data[i].csvalue;
+					if (csvalue == undefined) {
+						csvalue = '';
+					}
+					$("#sr_thead").append('<th style="padding:5px;width: 100px;">'+name+'</th>');
+					$("#sr_tbody").append('<td style="overflow:hidden;"><input id="'+id+'" type="text" style="width:100%;font-size: 18px;border:0px;padding:5px 0px 5px 0px;text-align:center;" onkeyup="keyup(this);sj_jisuan();" onkeypress="if(event.keyCode==13){nextInput(this);}"></td>');
+					$('#'+id).val(csvalue);//输入框赋初始值
+				}
+				$("#sr_savebtn").linkbutton({
+				    iconCls: 'icon-save',
+				    text: '保存'
+				});
+				$('#'+ data[0].zbbh).select();
+				//数据录入layout自动高度
+				var c = $('#sjlr_layout');
+				var cc = $('#sjlr_sjlr');
+				var p = c.layout('panel','north');	//获取 north panel
+				var p1 = cc.layout('panel','center');
+				var oldHeight = p.panel('panel').outerHeight();//获取初始高度
+				var old = p1.panel('panel').outerHeight();
+				p1.panel('resize', {height:'auto'});
+				var newHeight1 = p1.panel('panel').outerHeight();
+				p.panel('resize', {height:(oldHeight + newHeight1 - old)});
+				
+				/*对比指标面板*/
+				/* c = $('#sjlr_layout');
+				p = c.layout('panel','south');
+				oldHeight = p.panel('panel').outerHeight();//获取初始高度
+				p.panel('resize', {height:'auto'});
+				newHeight = p.panel('panel').outerHeight(); */
+				c.layout('resize',{
+					fit:true
+				});
+			}
+		});
+  	}
+  	function shuju_sc(xmid) {
+  		$.ajax({
+			type:"post",
+			url:"ServletXm_ScCx?xmid="+xmid,
+			async:false,
+			success:function(data){//点击项目输出数据输出
+				sc_data = data;
+				for (var i = 0; i < data.length; i++) {
+					var id = data[i].zbbh;//输入指标文本框ID
+					var name = data[i].zb_name;//输入指标名称
+					$("#sc_thead").append('<th style="padding:5px;width: 100px;">'+name+'</th>');
+					$("#sc_tbody").append('<td style="overflow:hidden;"><input id="'+id+'" name="'+name+'" type="text" readonly="true" style="width:100%;font-size: 18px;border:0px;padding:5px 0px 5px 0px;text-align:center;"></td>');
+				}
+			}
+		});
+	}
+  	function nextInput(input) {//点击回车选择下一个文本框
+  		var inputs = $("#sr_tbody").find(":text"); // 获取表格中的所有输入框
+  		var idx = inputs.index(input); // 获取当前焦点输入框所处的位置
+  		var keycishu = 0;//点击回车次数
+  		if (idx == inputs.length - 1) {// 判断是否是最后一个输入框  
+  			var node = $("#tree_xmlb").tree("getSelected");//获得选中的节点
+  			sr_save();//最后一个文本框回车后保存数据
+  			/*最后一个输入框点击回车后跳转到下一个树节点*/
+  			var nodePar = $("#tree_xmlb").tree("getParent",node.target);//获得选中节点的父节点
+  			var nodeChi = $("#tree_xmlb").tree("getChildren",nodePar.target);//获得选中节点的同级子节点
+  			for (var i = 0; i < nodeChi.length-1; i++) {//遍历选中节点的父节点下的子节点
+				if (node.target == nodeChi[i].target) {
+					$('#tree_xmlb').tree('select', nodeChi[i+1].target);
+				}
+			}
+        } else {  
+            inputs[idx + 1].select(); // 选中文字  
+        }
+	}
+  	function keyup(e){//控制文本框只能输入数字和(.),输入数据时运行计算方法
+  		var v = $('#'+e.id).val();
+  		var reg = /[^0-9.]/;
+  		if (reg.test(v)) {
+			alert("只能输入数字和.");
+			var str = v.substring(0,v.length-1);
+			$('#'+e.id).val(str);
+		}
+  	}
+  	function sj_jisuan(){//数据计算方法
+  		sr_data = sr_data.sort(//输入指标数据按照指标编号排序，如果同时有 V ,V1先替换V1
+  			function(a,b){
+  				return b.zbbh.length - a.zbbh.length;
+  			}		
+  		);
+  		sc_data = sc_data.sort(//输出指标数据按照指标编号排序，如果同时有 V ,V1先替换V1
+  	  			function(a,b){
+  	  				return a.zbbh.length - b.zbbh.length;
+  	  			}		
+  	  		);
+  		var e = new Array();//替换完输入指标后，公式错误的数组，保存sc_data中错误length
+  		var ei = 0;//数组的length
+  		for (var ii = 0; ii < sc_data.length; ii++) {//清空输出指标数据，防止计算时获取不到正确的输出指标数据
+  			var sc_zbbh = sc_data[ii].zbbh;//获得输出指标变化，指标编号为输出文本框ID
+  			$("#"+sc_zbbh).val("");
+		}
+  		//console.log(sc_data);
+  		for (var i = 0; i < sc_data.length; i++) {//查找公式及其他数据进行计算
+			var xsdws = sc_data[i].xsdws;//获得小数点位数
+			var math = sc_data[i].math;//获得公式
+			var sc_zbbh = sc_data[i].zbbh;//获得输出指标编号，指标编号为输出文本框ID
+			var qxdyzb = sc_data[i].qxdyzb;//获得曲线对应指标
+			var mathClass = sc_data[i].mathclass;//获得公式类型
+			if (mathClass == "一般公式") {
+				for (var int = 0; int < sr_data.length; int++) {//先用输入指标替换公式
+					var sr_zbbh = String(sr_data[int].zbbh);//获得输入指标编号，指标编号就是输入文本框ID
+					var sr_val = $("#"+sr_zbbh).val();//获得输入文本框的值
+					if (sr_val != "") {//获得的输入值不为空执行
+						var reg = new RegExp(sr_zbbh,"g");//正则全局替换
+						math = math.replace(reg, sr_val);//替换公式中的V1,V2，V等
+					}
+				}
+				try {
+					var val = eval(math);//计算结果
+					if (isNaN(val)) {//如果计算结果是否为数字
+						e[ei] = i;
+						ei++;
+					} else {
+						//alert("指标编号："+sc_zbbh+"结果："+val);
+						$("#"+sc_zbbh).val(val.toFixed(parseInt(xsdws)));
+					}
+				} catch (err) {
+					e[ei] = i;
+					ei++;
+				}
+			} else if (mathClass == "曲线公式"){
+				var qx_name = math;
+				var a = $("#"+qxdyzb).val()//获取曲线对应指标的值
+				var sc_zbbhs = sc_data[i].zbbh;//获得输出指标编号，指标编号为输出文本框ID
+				var xsdwss = sc_data[i].xsdws;//获得小数点位数
+				if (a != "") {
+					$.ajax({//获取曲线的数据，添到曲线修改对话框中
+						type:"post",
+						url:"ServletQuXian",
+						async:false,
+						dataType: "json",
+						data:{qx_name:qx_name},//把json对象加个名字用于在后台获取
+						success:function(data) {
+							var A1 = parseFloat(data.a1);
+							var A2 = parseFloat(data.a2);
+							var A3 = parseFloat(data.a3);
+							var A4 = parseFloat(data.a4);
+							qxgs="A1+A2*a+A3*Math.pow(a,2)+A4*Math.pow(a,3)";//曲线计算公式
+							val = eval(qxgs);
+							$("#"+sc_zbbhs).val(val.toFixed(parseInt(xsdwss)));
+						}
+					});
+				}
+			}
+		}
+  		//console.log(e);
+  		for (var jj = 0; jj < e.length; jj++) {//用输出指标替换公式
+			var sc_bh = String(sc_data[e[jj]].zbbh);//获得输入指标编号，指标编号就是输入文本框ID
+			xsdws = sc_data[e[jj]].xsdws;//获得小数点位数
+			math = sc_data[e[jj]].math;//获得公式
+			for (var intsr = 0; intsr < sr_data.length; intsr++) {//先用输入指标替换公式
+				var sr_zbbh = String(sr_data[intsr].zbbh);//获得输入指标编号，指标编号就是输入文本框ID
+				var sr_val = $("#"+sr_zbbh).val();//获得输入文本框的值
+				if (sr_val != "") {//获得的输入值不为空执行
+					var reg = new RegExp(sr_zbbh,"g");//正则全局替换
+					math = math.replace(reg, sr_val);//替换公式中的V1,V2，V等
+				}
+			}
+			for (var int = 0; int < sc_data.length; int++) {
+				var sc_b = sc_data[int].zbbh;//获得输出指标变化，指标编号为输出文本框ID
+				var sc_val = $("#"+sc_b).val();//获得输出文本框的值
+				if (sc_val != "") {
+					reg = new RegExp(sc_b,"g");//正则全局替换
+					math = math.replace(reg, sc_val);//替换公式中的V1,V2，V等
+				}
+			}
+			
+			try {
+				var val = eval(math);//计算结果
+				if (isNaN(val)) {//如果计算结果是否为数字
+					$("#"+sc_bh).val("");
+				} else {
+					//alert("指标编号："+sc_zbbh+"结果："+val);
+					$("#"+sc_bh).val(val.toFixed(parseInt(xsdws)));
+				}
+			} catch (e) {
+				$("#"+sc_bh).val("");
+			}
+		}
+		//console.log("替换输出后的公式："+math);
+		
+  	}
+
+  	function sr_save(){//数据录入保存
+  		var node = $("#tree_xmlb").tree("getSelected");//获得选中的节点
+  		var xm_id = node.id;//项目ID
+  		var xm_name = node.text;//项目名称
+  		var hysj_date = $('#sjlr_datebox').datebox('getValue');//日期框时间
+  		var hysjd_time = $('#ss').textbox('getValue');//时间点
+  		var hy_bc = $('#banci').combobox('getValue');//化验班次
+  		//var hy_zhbc = $('#zhbc_tt').textbox('getValue');//滞后班次
+  		var inputs = $("#sr_tbody").find(":text"); // 获取表格中的所有输入框
+  		var srzb_data = new Array();//化验指标的数据数组（包括输入指标编号，输入指标的值）
+  		for (var i = 0; i < inputs.length; i++) {
+  			srzb_data[i]={"srzb_bh":inputs[i].id,"srzb_value":inputs[i].value};
+		}
+  		var sr_data = {"xm_id":xm_id,"xm_name":xm_name,"hysj_date":hysj_date,"hysjd_time":hysjd_time,"hy_bc":hy_bc,"srzb_data":srzb_data};//传入后台的数据
+  		sr_data = JSON.stringify(sr_data);//转换为json
+  		$.ajax({//保存输入指标
+			type:"post",
+			url:"ServletSuRuZhiBiao_Save",
+			async:false,
+			dataType: "text",
+			data:{sr_data:sr_data},
+			success:function(data) {
+				sc_save(data);
+			},
+			error:function(XMLHttpRequest,textStatus,errorThrown){
+				alert(XMLHttpRequest.status);
+				alert(XMLHttpRequest.readyState);
+				alert(textStatus);
+				alert("保存输入指标失败");
+			}
+		});
+  		//console.log(data);
+  	}
+  	function sc_save(srzb_data_id){//数据输出保存
+  		var srzb_data_id =srzb_data_id;//输入指标数据表id
+  		var node = $("#tree_xmlb").tree("getSelected");//获得选中的节点
+  		var xm_id = node.id;//项目ID
+  		var xm_name = node.text;//项目名称
+  		var hysj_date = $('#sjlr_datebox').datebox('getValue');//日期框时间
+  		var hysjd_time = $('#ss').textbox('getValue');//时间点
+  		var hy_bc = $('#banci').combobox('getValue');//化验班次
+  		var hy_zhbc = $('#zhbc_tt').textbox('getValue');//滞后班次
+  		var beizhu = $('#bz_combobox').combobox('getValue');//备注
+  		var beizhu_name = $('#bz_combobox').combobox('getText');//备注名称
+  		var inputs = $("#sc_tbody").find(":text"); // 获取表格中的所有输入框
+  		var sczb_data = new Array();//化验指标的数据数组（包括输入指标编号，输入指标的值）
+  		for (var i = 0; i < inputs.length; i++) {
+  			sczb_data[i]={"sczb_bh":inputs[i].id,"sczb_value":inputs[i].value,"sczb_name":inputs[i].name};
+		}
+  		var sc_data = {"xm_id":xm_id,"srzb_data_id":srzb_data_id,"xm_name":xm_name,"hysj_date":hysj_date,"hysjd_time":hysjd_time,"hy_bc":hy_bc,"hy_zhbc":hy_zhbc,"beizhu":beizhu,"beizhu_name":beizhu_name,"sczb_data":sczb_data};//传入后台的数据
+  		sc_data = JSON.stringify(sc_data);//转换为json
+  		$.ajax({//保存输入指标
+			type:"post",
+			url:"ServletSuChuZhiBiao_Save",
+			async:true,
+			dataType: "text",
+			data:{sc_data:sc_data},
+			success:function(data) {
+				$("#sczb_dg").datagrid('reload');
+			},
+			error:function(XMLHttpRequest,textStatus,errorThrown){
+				alert(XMLHttpRequest.status);
+				alert(XMLHttpRequest.readyState);
+				alert(textStatus);
+				alert("保存输出指标失败");
+			}
+		});
+  		//$("#sczb_dg").datagrid('reload');
+  	}
+  	function sc_datagrid(){//创建输出数据表
+  		
+  		var none = $("#tree_xmlb").tree('getSelected');
+  		var xmclass = none.xmclass;
+  		var xm_id = none.id;
+  		var hysj_date = $('#sjlr_datebox').datebox('getValue');
+  		var hy_bc = $('#banci').combobox('getValue');
+  		var col = new Array();//列字段数组
+  		col = [
+  		        {field:'id',title:'ID',width:10,align:'center',hidden:"true"},    
+		        {field:'srzb_data_id',title:'输入数据ID',width:10,align:'center',hidden:"true"},    
+		        {field:'xm_id',title:'项目ID',width:10,align:'center',hidden:"true"},
+		     	{field:'xm_name',title:'项目名称',width:100,align:'center'},
+		     	{field:'hysj_date',title:'化验时间',width:10,align:'center',hidden:"true"},
+		     	{field:'hysjd_time',title:'时间',width:60,align:'center'},
+		     	{field:'gx_zhbc',title:'班次',width:60,align:'center'},];
+  		for (var i = 7; i < sc_data.length+7; i++) {
+			col[i] = {field:sc_data[i-7].zbbh,title:sc_data[i-7].zb_name,width:60,align:'center'};
+		}
+  		col[col.length] = {field:'beizhu',title:'备注',width:40,align:'center',hidden:"true"};
+  		col[col.length] = {field:'beizhu_name',title:'备注',width:40,align:'center'};
+  		var sc_table = $("#sc_table").height();
+  		var sc_lay = $("#sc_lay").height();
+  		$("#sczb_dg").edatagrid({
+  			url:'ServletScDataGrid_Cx?xm_id='+xm_id+'&hysj_date='+hysj_date+'&hy_bc='+hy_bc,
+  			columns:[    
+		        	col
+		    	],
+	    	fitColumns:true,
+	    	height:sc_lay-sc_table-1,//重新设置datagrid的高度
+	    	scrollbarSize:0,
+			onSelect:function(rowIndex,rowData){
+				var id = rowData.srzb_data_id;
+				$("#sjlr_datebox").datebox("setValue",rowData.hysj_date);//设置日期框
+				$('#banci').combobox('setValue', rowData.hy_bc);//设置班次
+				$('#ss').textbox('setValue', rowData.hysjd_time);//设置时间
+				$('#zhbc_tt').textbox('setValue', rowData.gx_zhbc);//设置固相滞后班次
+				$('#bz_combobox').combobox('setValue',rowData.beizhu_name);//设置备注
+				jQuery.each(rowData, function(key, val) {//遍历输出指标对象
+					  $('#'+key).val(val);
+				});
+				$.ajax({//查询输入指标
+					type:"post",
+					url:"ServletSuJuLR_CxShuRuZhiBiao",
+					async:true,
+					dataType: "json",
+					data:{id:id},
+					success:function(data) {
+						for (var i = 0; i < data.length; i++) {
+							$('#'+data[i].srzb_bh).val(data[i].srzb_value);//输入框赋初始值
+						}
+					},
+					error:function(XMLHttpRequest,textStatus,errorThrown){
+						alert(XMLHttpRequest.status);
+						alert(XMLHttpRequest.readyState);
+						alert(textStatus);
+					}
+				});
+			},
+			destroyUrl: 'ServletSuJuLR_Delete',
+	  		});
+  		if (xmclass == 1) {//如果项目类型为液相
+  			$("#sczb_dg").datagrid('hideColumn','gx_zhbc');
+		} else {//如果项目类型为固相
+			$("#sczb_dg").datagrid('hideColumn','hysjd_time');
+		}
+  		sjdb_date_bc();
+  	}
+  	function sjdb_date_bc(){//数据对比的日期，班次，datagrid初始化
+  		function myformatter(date){//格式化日期格式yyyy-mm-dd
+    		    var y = date.getFullYear();  
+    		    var m = date.getMonth()+1;  
+    		    var d = date.getDate();  
+    		    return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);  
+    		}
+  		var none = $("#tree_xmlb").tree('getSelected');
+  		var xmclass = none.xmclass;
+  		var xm_id = none.id;
+  		var hysj_date = $('#sjlr_datebox').datebox('getValue');
+  		var hy_bc = $('#banci').combobox('getValue');
+  		hysj_date = new Date(Date.parse(hysj_date.replace(/-/g, "/")));//字符串转为日期格式
+  		var yy = hysj_date.getYear();
+		var mm = hysj_date.getMonth()+1;//获得当前选择的月份
+		var dd = hysj_date.getDate();//获得当前选择的日
+		if (hy_bc==1) {//项目班次减去滞后班次
+			hy_bc = 3;
+			hysj_date.setDate(dd-1);
+		} else {
+			hy_bc = hy_bc-1;
+		}
+		mm = hysj_date.getMonth()+1;
+		dd = hysj_date.getDate();
+		$('#sjdb_datebox').datebox({//数据对比日期更改后重新获取对比数据
+			onSelect: function(date){
+				var none = $("#tree_xmlb").tree('getSelected');
+		  		var xm_id = none.id;
+		  		var hysj_date = $('#sjdb_datebox').datebox('getValue');
+		  		var hy_bc = $('#sjdb_banci').combobox('getValue');
+				sjdb_dg_(xm_id,hysj_date,hy_bc);
+		    }
+		});
+		$('#sjdb_datebox').datebox('setValue', myformatter(hysj_date));
+		$('#sjdb_banci').combobox('setValue', hy_bc);
+		hysj_date = hysj_date = $('#sjlr_datebox').datebox('getValue');
+  		sjdb_dg_(xm_id,hysj_date,hy_bc);
+  	}
+  	function sjdb_dg_(xm_id,hysj_date,hy_bc) {//数据对比表数据加载
+  		var none = $("#tree_xmlb").tree('getSelected');
+  		var xmclass = none.xmclass;
+  		var col = new Array();//列字段数组
+  		col = [
+  		        {field:'id',title:'ID',width:10,align:'center',hidden:"true"},    
+		        {field:'srzb_data_id',title:'输入数据ID',width:10,align:'center',hidden:"true"},    
+		        {field:'xm_id',title:'项目ID',width:10,align:'center',hidden:"true"},
+		     	{field:'xm_name',title:'项目名称',width:100,align:'center'},
+		     	{field:'hysj_date',title:'化验时间',width:10,align:'center',hidden:"true"},
+		     	{field:'hysjd_time',title:'时间',width:60,align:'center'},
+		     	{field:'gx_zhbc',title:'班次',width:60,align:'center'},];
+  		for (var i = 7; i < sc_data.length+7; i++) {
+			col[i] = {field:sc_data[i-7].zbbh,title:sc_data[i-7].zb_name,width:60,align:'center'};
+		}
+  		col[col.length] = {field:'beizhu',title:'备注',width:40,align:'center',hidden:"true"};
+  		col[col.length] = {field:'beizhu_name',title:'备注',width:40,align:'center'};
+  		$("#sjdb_dg").edatagrid({
+  			url:'ServletScDataGrid_Cx?xm_id='+xm_id+'&hysj_date='+hysj_date+'&hy_bc='+hy_bc,
+  			columns:[    
+		        	col
+		    	],
+	    	fitColumns:true,
+	    	//height:sc_lay-sc_table-1,//重新设置datagrid的高度
+	    	scrollbarSize:0,
+	  		});
+  		if (xmclass == 1) {//如果项目类型为液相
+  			$("#sjdb_dg").datagrid('hideColumn','gx_zhbc');
+		} else {//如果项目类型为固相
+			$("#sjdb_dg").datagrid('hideColumn','hysjd_time');
+		}
+	}
+    </script>
+	</head>
+<body class="easyui-layout">
+<!-- 菜单 -->
+	<div data-options="region:'west'" style="width:15%;">
+		<div style="height: 20px;background-color: #eee;font-size: 14px;font-weight: 700;padding: 3px;text-align: center;">项目列表</div>
+		<ul id="tree_xmlb" class="easyui-tree" style="padding: 5px;"></ul><!--项目列表tree-->
+	</div>
+   <!-- 内容显示区 -->
+   <div data-options="region:'center',border: false" style="background:#eee;">
+   		<div id="sjlr_layout" class="easyui-layout" data-options="fit:true">
+	   		<!-- 数据录入 -->
+			<div data-options="region:'north', collapsible:false, title:'数据录入',border: false" style="height: 30%;">
+				<div id="sjlr_sjlr" class="easyui-layout" data-options="fit:true">
+					<!--数据录入工具栏-->
+					<div id="sjlr_gongju" data-options="region:'north', border:false" 
+						style="height: 35px;display:flex;align-items:center; background-color: #eee;padding-left: 10px;">
+						化验时间：<input id="sjlr_datebox" type="text" class="easyui-datebox" required="required" 
+								style="width: 100px;" data-options="editable: false">
+						<label style="margin-left: 10px;">班次：</label>
+						<select id="banci" class="easyui-combobox" panelHeight='auto' editable='false' style="width: 80px;">
+							<option value="1">零点</option>
+							<option value="2">白班</option>
+							<option value="3">四点</option>
+						</select>
+						<label id="ss_lable" style="margin-left: 10px;">时间点：</label>
+						<input id="ss" class="easyui-textbox" style="width:80px;"
+							    required="required" data-options="showSeconds:false">
+					    <label id="zhbc_lable" style="margin-left: 10px;">滞后班次：</label>
+					    <input id="zhbc_tt" class="easyui-textbox" style="width:80px;" required="required">
+					    <label style="margin-left: 10px;">备注：</label>
+						<input id="bz_combobox" class="easyui-combobox" panelHeight='auto' style="width:80px;">
+					</div>
+					<!--数据录入框-->
+					<div data-options="region:'center',border: false" >
+						<table id="sr_table" border="1" cellspacing="0" cellpadding="0" 
+						style="text-align:center; border-collapse: collapse; border-color:#00BFFF; margin: 3px;font-size: 16px;">
+							<thead style="background-color: #BBFFFF;padding: 10px;">
+								<tr id="sr_thead"></tr>
+							</thead>
+							<tbody>
+								<tr id="sr_tbody"></tr>
+							</tbody>
+						</table>
+						<!--数据录入保存按钮-->
+						<a id="sr_savebtn" style="float: left;margin-left: 3px;margin-bottom: 5px;" href="#" onclick="sr_save()"></a>
+					</div>
+				</div>
+			</div>
+			<!-- 输出指标 -->
+			<div id="sc_lay" data-options="region:'center',title:'输出指标',border: false" style="height: 40%; padding: 3px;overflow: hidden;">
+				<!--数据输出框-->
+				<table id="sc_table" border="1" cellspacing="0" cellpadding="0"
+				style="text-align:center; border-collapse: collapse; border-color:#00BFFF;font-size: 16px;">
+					<thead style="background-color: #BBFFFF;padding: 10px;">
+						<tr id="sc_thead"></tr>
+					</thead>
+					<tbody>
+						<tr id="sc_tbody"></tr>
+					</tbody>
+				</table>
+				<table id="sczb_dg" class="easyui-edatagrid" idField="id"
+				data-options="rownumbers:'true', border: true, singleSelect:true, toolbar:'#sczb_toolbar'"></table>
+				<div id="sczb_toolbar">
+					<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#sczb_dg').edatagrid('destroyRow')">删除</a>
+				</div>
+			</div>
+			<!-- 数据对比 -->
+			<div id="sjdb_layout" data-options="region:'south', hideCollapsedContent:false, collapsed:false, border: false, title:'数据对比'" style="height: 30%;">
+				<table id="sjdb_dg" class="easyui-edatagrid" idField="id"
+				data-options="fit:true, rownumbers:'true', border: false, singleSelect:true, toolbar:'#sjdb_toolbar'"></table>
+				<div id="sjdb_toolbar">
+					化验时间：<input id="sjdb_datebox" type="text" class="easyui-datebox" required="required" 
+								style="width: 100px;" data-options="editable: false">
+						<label style="margin-left: 10px;">班次：</label>
+						<select id="sjdb_banci" class="easyui-combobox" panelHeight='auto' editable='false' style="width: 80px;">
+							<option value="1">零点</option>
+							<option value="2">白班</option>
+							<option value="3">四点</option>
+						</select>
+				</div>
+   			</div>
+		</div>
+   </div>
+</body>
+</html>

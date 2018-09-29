@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>化验室数据录入系统</title>
+	<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+	
+	<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<style type="text/css">
+		#fm,#fm_passxg{
+			margin:0;
+			padding:10px 30px;
+		}
+		.ftitle{
+			font-size:14px;
+			font-weight:bold;
+			color:#666;
+			padding:5px 0;
+			margin-bottom:10px;
+			border-bottom:1px solid #ccc;
+		}
+		.fitem{
+			margin-bottom:5px;
+		}
+		.fitem label{
+			display:inline-block;
+			width:80px;
+		}
+	</style>
+	<script type="text/javascript">
+	$(function(){
+		$('#banbao_gl_dg').edatagrid({
+			url: 'ServletBanBao_GL_CX',
+			saveUrl: 'ServletBanBao_GL_Save',
+			updateUrl:'ServletBanBao_GL_Update',
+			destroyUrl: 'ServletBanBao_GL_Delete',
+			onSave:function(index, row){
+				$('#banbao_gl_dg').edatagrid('reload');
+				$.messager.show({title:'通知',msg:'保存成功。'});
+			},
+			onDestroy:function(index, row){
+				$('#banbao_gl_dg').edatagrid('reload');
+				$.messager.show({title:'通知',msg:'删除成功。'});
+			},
+			onError: function(index,row){
+				alert("错误："+row.msg);
+				$('#banbao_gl_dg').edatagrid('reload');
+			}
+		});
+	});
+	/*班报订制*/
+	function banbaodingzhi(){
+		try {
+			var banbao_id = $("#banbao_gl_dg").datagrid("getSelected").id
+			var content = '<iframe name="xtsc" scrolling="auto" frameborder="0" src="banbaodingzhi.html?banbaoid='+banbao_id+'" style="width:100%;height:100%;"></iframe>';
+			$('<div style="overflow:hidden;"></div>').dialog({
+                id : 'newDialog',
+                title : '班报订制',
+                content : content,
+                width : 900,
+                height : 700,
+                closed : false,
+                cache : false,
+                //href : 'banbaodingzhi.html?banbaoid='+banbao_id,
+                modal : true,
+                onLoad : function() {
+                    //初始化表单数据
+                },
+                onClose : function() {
+                    $(this).dialog('destroy');
+                },
+                buttons : [{
+                    text : '关闭',
+                    iconCls : 'icon-cancel',
+                    handler : function() {
+                        $("#newDialog").dialog('destroy');
+                    }
+                } ],
+
+            });
+		} catch (e) {
+				alert("选择一个报表！"+e);
+		}
+	}
+	</script>
+</head>
+<body>
+	<!--用户表  -->
+	<table id="banbao_gl_dg" class="easyui-datagrid" style="width:auto;height:auto" idField="id"
+			data-options="rownumbers:'true', fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#toolbar'">
+		<thead>
+			<tr>
+				<th field="id" width="50" hidden="true">班报ID</th>
+				<th field="pxid" width="20" editor="{type:'validatebox',options:{required:true}}">排序号</th>
+				<th field="banbao_name" width="100" editor="{type:'validatebox',options:{required:true}}">班报名称</th>
+				<th field="banbao_bh" width="200"  editor="{type:'text'}">班报编号</th>
+				<th field="sfky" width="40"  editor="{type:'combobox',options:{editable:false,valueField:'val',textField:'text', data:[{val:'1',text:'可用'},{val:'0',text:'不可用'}],panelHeight:'auto',required:true}}">是否可用</th>
+			</tr>
+		</thead>
+	</table>
+	<!--表工具  -->
+	<div id="toolbar">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#banbao_gl_dg').edatagrid('addRow',{row:{sfky:1}})">新建</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#banbao_gl_dg').edatagrid('destroyRow')">删除</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#banbao_gl_dg').edatagrid('saveRow')">保存</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#banbao_gl_dg').edatagrid('cancelRow')">取消</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-mini-add" plain="true" onclick="banbaodingzhi()">班报订制</a>
+	</div>
+		
+</body>
+</html>

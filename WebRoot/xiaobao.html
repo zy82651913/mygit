@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+<!--     <style>
+    .datagrid-cell,.datagrid-header .datagrid-cell span{font-size: 14px;};
+    </style> -->
+	    <script type="text/javascript">
+	  //加载完成后运行
+		    $(document).ready(function(){//初始化日期控件
+		    	$("#err").hide();//隐藏错误信息lable
+		    	$('#tree_xmlb').tree({
+					url:'ServletCheJianTree',
+					cache:false,
+					loadFilter: function(data){
+						//console.log(jsonbl(data));
+				        return jsonbl(data);
+				    },
+					onClick: function(node){//单击节点运行
+						$("#xiaobao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
+						if ($(this).tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
+							var hysj_date = $("#xiaobao_datebox").datebox('getValue');
+							var hy_bc = $('#banci').combobox('getValue');
+							var chejianid = new Array();
+							chejianid[0] = node.id;
+							var jizhanid = $(this).tree("getParent",node.target).id;//取得所选的叶节点的父节点id，此id为技站id，判断液相固相
+							//console.log(jizhanid);
+							xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid);
+						} else {
+							var chejianid = new Array();
+							for (var i = 0; i < node.children.length; i++) {
+								chejianid[i] = node.children[i].id;
+							}
+							var jizhanid = node.id;//取得所选的节点id，此id为技站id，判断液相固相
+							var hysj_date = $("#xiaobao_datebox").datebox('getValue');
+							var hy_bc = $('#banci').combobox('getValue');
+							xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid);
+						}
+					}
+				});
+				var tree = {  
+					    id:'',  //节点的ID
+					    text:'',  //节点显示的文字
+					    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+					    checked:'',  //指示节点是否被选中。
+					    attributes:'',  //给一个节点添加的自定义属性。
+					    children:''  //定义了一些子节点的节点数组。
+					}
+				function jsonbl(data){  
+					    var easyTree = [];
+						var jizhanid = null; 
+						var i=0;
+					    $.each(data,function(index,item){
+							ii=0;
+							if(item.jizhanid != jizhanid){
+								easyTree[i] = bl(data,item);
+								jizhanid = item.jizhanid;
+								i++;
+							}
+					     }); 
+					    return easyTree;  
+					}
+				//此处是把后台传过来的json数据转成easyui规定的格式  
+				function bl(data,item){  
+				    var tree = new Object();
+					var jizhanid = item.jizhanid;
+					var children = [];
+						tree.id = item.jizhanid;  
+					    tree.text = item.jizhanname;  
+					    tree.state = 'open';  
+					    tree.checked = false;
+						tree.attributes = ''; 
+						tree.children=node();
+						function node(){
+							for(var a=0;a<data.length;a++){
+								if(data[a].jizhanid==jizhanid){
+									var zjdobj = new Object();//子节点对象
+									zjdobj.id = data[a].chejianid;  
+								    zjdobj.text = data[a].chejianname;  
+								    zjdobj.state = 'open';  
+								    zjdobj.checked = false;
+									zjdobj.attributes = '';  
+									children[ii] = zjdobj;
+									ii++;
+								}
+							} 
+						return children;
+						}
+							return tree;
+				}
+				$('#banci').combobox({//班次组合框事件
+		    		onLoadSuccess: function(none){
+		    			var mydate = new Date($.ajax({async: false}).getResponseHeader("Date"));//当前时间
+		    			var hours = parseInt(mydate.getHours());//当前小时,转换为int
+		    			if (hours>=0 && hours<8) {//根据时间设置班次
+		    				$('#banci').combobox('setValue', '1');
+						} else if(hours>=8 && hours<16) {
+							$('#banci').combobox('setValue', '2');
+						} else if(hours>=16 && hours<24){
+							$('#banci').combobox('setValue', '3');
+						}
+		    		},
+					onHidePanel: function(re){
+						$("#err").empty();
+		    			var node = $('#tree_xmlb').tree("getSelected");
+		    			try {
+		    				if ($('#tree_xmlb').tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
+								var hysj_date = $("#xiaobao_datebox").datebox('getValue');
+								var hy_bc = $('#banci').combobox('getValue');
+								var chejianid = new Array();
+								chejianid[0] = node.id;
+								var jizhanid = $('#tree_xmlb').tree("getParent",node.target).id;//取得所选的叶节点的父节点id，此id为技站id，判断液相固相
+								//console.log(jizhanid);
+								xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid);
+							} else {
+								var chejianid = new Array();
+								for (var i = 0; i < node.children.length; i++) {
+									chejianid[i] = node.children[i].id;
+								}
+								var jizhanid = node.id;//取得所选的节点id，此id为技站id，判断液相固相
+								var hysj_date = $("#xiaobao_datebox").datebox('getValue');
+								var hy_bc = $('#banci').combobox('getValue');
+								xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid);
+							}
+						} catch (e) {
+							$("#err").append('<label>选择一个车间！</label>');
+							$("#err").show();
+						}
+		    		}
+		    	});
+				function myformatter(date){//格式化日期 
+		    		    var y = date.getFullYear();  
+		    		    var m = date.getMonth()+1;  
+		    		    var d = date.getDate();  
+		    		    return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);  
+		    		}
+				$('#xiaobao_datebox').datebox({//日期更改后重新获取数据
+					onSelect: function(date){
+						$("#err").empty();
+						var node = $('#tree_xmlb').tree("getSelected");
+						try {
+							if ($('#tree_xmlb').tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
+								var hysj_date = $("#xiaobao_datebox").datebox('getValue');
+								var hy_bc = $('#banci').combobox('getValue');
+								var chejianid = new Array();
+								chejianid[0] = node.id;
+								var jizhanid = $('#tree_xmlb').tree("getParent",node.target).id;//取得所选的叶节点的父节点id，此id为技站id，判断液相固相
+								//console.log(jizhanid);
+								xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid);
+							} else {
+								var chejianid = new Array();
+								for (var i = 0; i < node.children.length; i++) {
+									chejianid[i] = node.children[i].id;
+								}
+								var jizhanid = node.id;//取得所选的节点id，此id为技站id，判断液相固相
+								var hysj_date = $("#xiaobao_datebox").datebox('getValue');
+								var hy_bc = $('#banci').combobox('getValue');
+								xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid);
+							}
+						} catch (e) {
+							$("#err").append('<label>选择一个车间！</label>');
+							$("#err").show();
+						}
+		    			
+				    }
+				});
+				$("#xiaobao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
+		    });
+		function xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid) {
+			var sj = {chejianid:chejianid, hysj_date:hysj_date, hy_bc:hy_bc};
+			sj=JSON.stringify(sj);//把js对象转换成json
+			$.ajax({//查询数据
+				type:"post",
+				url:'ServletXiaoBao_DataGridCx',
+				async:true,
+				dataType: "json",
+				data:{sj:sj},
+				success:function(data) {
+					$("#xiaobao_tab").empty();//清除表格
+					$("#err").empty();
+					if (data[0].xiangmu.length==0) {
+						$("#err").append('<label>没有数据！</label>');
+						$("#err").show();
+					} else {
+						$("#err").hide();
+						for (var i = 0; i < data[0].xiangmu.length; i++) {
+							var xm_name = data[0].xiangmu[i].xm_name;//标题项目名称
+							var sczb_data = data[0].xiangmu[i].sczb_data;//标题项目数据
+							$("#xiaobao_tab").append('<tr>');
+							/*添加每个项目的标题*/
+							$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;background-color: #BBFFFF;">项目名称</td>');
+							if (jizhanid == 1) {//液相显示化验时间，不显示滞后班次
+								$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;background-color: #BBFFFF;">化验时间</td>');
+							} else if (jizhanid == 2) {//固相显示滞后班次，不显示化验时间
+								$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;background-color: #BBFFFF;">滞后班次</td>');
+							}
+							for (var int = 0; int < sczb_data.length; int++) {
+								var sczb_name = sczb_data[int].sczb_name;
+								$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;background-color: #BBFFFF;">'+sczb_name+'</td>');
+							}
+							$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;background-color: #BBFFFF;">备注</td>');
+							$("#xiaobao_tab").append('</tr>');
+							/*添加项目的数据*/
+							var shenhe1 = 0;
+							for (var int2 = 0; int2 < data[1].sczb_data.length; int2++) {
+								var hysjd_time = data[1].sczb_data[int2].hysjd_time;//化验时间
+								var gx_zhbc = data[1].sczb_data[int2].gx_zhbc;//固相滞后班次
+								var beizhu_name = data[1].sczb_data[int2].beizhu_name;//备注
+								var shenhe = Number(data[1].sczb_data[int2].shenhe);//审核状态0代表未审核，1代表审核
+								shenhe1 += shenhe;
+								if (xm_name == data[1].sczb_data[int2].xm_name) {
+									$("#xiaobao_tab").append('<tr>');
+									$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;">'+xm_name+'</td>');
+									if (jizhanid == 1) {//液相显示化验时间，不显示滞后班次
+										$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;">'+hysjd_time+'</td>');
+									} else if (jizhanid == 2) {//固相显示滞后班次，不显示化验时间
+										$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;">'+gx_zhbc+'</td>');
+									}
+									for (var int3 = 0; int3 < data[1].sczb_data[int2].sczb_data.length; int3++) {
+										var val = data[1].sczb_data[int2].sczb_data[int3].sczb_value;//数据
+										$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;">'+val+'</td>');
+									}
+									$("#xiaobao_tab").append('<td style="overflow:hidden;padding:5px;">'+beizhu_name+'</td>');
+									$("#xiaobao_tab").append('</tr>');
+								}
+							}
+							if (shenhe1 == data[1].sczb_data.length) {
+								$("#shenhe_lab").text("数据已审核");
+								$("#shenhe_lab").css("color","green");
+							} else {
+								$("#shenhe_lab").text("数据未审核");
+								$("#shenhe_lab").css("color","red");
+							}
+						}
+					}
+					var toolHeight = $("#toolbar").innerHeight()+5;//工具栏高度
+					$("#xiaobao_tab").css("margin-top",toolHeight+"px");//设置工具栏不滚动，定义表格的上边距
+				},
+				error:function(XMLHttpRequest,textStatus,errorThrown){
+					alert(XMLHttpRequest.status);
+					alert(XMLHttpRequest.readyState);
+					alert(textStatus);
+				}
+			});
+		}
+		function shenhe() {
+			if ($("#shenhe_lab").text() == "数据已审核") {
+				return;
+			} else {
+				var node = $('#tree_xmlb').tree("getSelected");
+				var hysj_date = $("#xiaobao_datebox").datebox('getValue');
+				var hy_bc = $('#banci').combobox('getValue');
+				var chejianid = new Array();
+				if ($(tree_xmlb).tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
+					chejianid[0] = node.id;
+					var jizhanid = $('#tree_xmlb').tree("getParent",node.target).id;//取得所选的叶节点的父节点id，此id为技站id，判断液相固相
+				} else {
+					for (var i = 0; i < node.children.length; i++) {
+						chejianid[i] = node.children[i].id;
+					}
+					var jizhanid = node.id;
+				}
+				var sj = {chejianid:chejianid, hysj_date:hysj_date, hy_bc:hy_bc};
+				sj=JSON.stringify(sj);//把js对象转换成json
+				$.ajax({
+					type:"post",
+					url:'ServletXiaoBao_ShenHe',
+					async:true,
+					dataType: "text",
+					data:{sj:sj},
+					success:function(data) {
+						xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid);
+						$.messager.show({
+							title:'消息',
+							showSpeed:100,
+							timeout:3000,
+							msg:'数据已审核。',
+							showType:'show',
+							 style:{
+								
+							    }
+
+						});
+
+					},
+					error:function(XMLHttpRequest,textStatus,errorThrown){
+						alert(XMLHttpRequest.status);
+						alert(XMLHttpRequest.readyState);
+						alert(textStatus);
+					}
+				});
+			}
+		}
+	    </script>
+	</head>
+<body class="easyui-layout">
+<!-- 菜单 -->
+	<div data-options="region:'west'" style="width:13.5%;">
+		<div style="height: 20px;background-color: #eee;font-size: 14px;font-weight: 700;padding: 3px;text-align: center;">项目列表</div>
+		<ul id="tree_xmlb" class="easyui-tree" style="padding: 5px;"></ul><!--项目列表tree-->
+	</div>
+   <!-- 内容显示区 -->
+	<div data-options="region:'center', border: false, collapsible:false, title:'小报查询'">
+		<!-- <table id="xiaobao_dg" class="easyui-edatagrid" idField="id"
+		data-options="fit:true, rownumbers:'true', border: false,, showHeader: false, singleSelect:true, toolbar:'#toolbar'"></table> -->
+		<!--工具栏-->
+		<div id="toolbar" style="width:100%; padding: 3px;background:#eee;position: absolute;">
+			<label style="margin-left: 10px;">化验时间：</label>
+			<input id="xiaobao_datebox" type="text" class="easyui-datebox" required="required" 
+					style="width: 100px;" data-options="editable: false">
+			<label style="margin-left: 10px;">班次：</label>
+			<select id="banci" class="easyui-combobox" panelHeight='auto' editable='false' style="width: 80px;">
+				<option value="1">零点</option>
+				<option value="2">白班</option>
+				<option value="3">四点</option>
+			</select>
+			<a id="shenhe_btn" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" href="#" onclick="shenhe()">审核</a>
+			<label id="shenhe_lab" style="margin-left: 10px; font-size: 16px;"></label>
+		</div>
+		<table id="xiaobao_tab" border="1" cellspacing="0" cellpadding="0"
+				style="margin:5px; text-align:center; border-collapse: collapse; border-color:#00BFFF;font-size: 14px;">
+			
+		</table>
+		<div id="err" style="font-size: 20px; color: red; padding: 40px 0px 0px 10px;"></div>
+	</div>
+</body>
+</html>

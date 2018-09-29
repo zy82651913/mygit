@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>化验室数据录入系统</title>
+		<link rel="icon" href="favicon.ico" type="image/x-icon" mce_href="favicon.ico" />
+		<link rel="bookmark" href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="css/login.css" />
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js"></script>
+		<!-- <script type="text/javascript" src="js/login.js"></script> -->
+		<script type="text/javascript">
+		$(document).ready(function(){
+			$("#user").hide();
+			$("#pass").hide();
+			$("#cw").hide();
+		});
+		function save(){
+			if ($("#username").val() =='') {
+				$("#username").focus();
+				$("#user").show();
+				return false;
+			}else if($("#password").val()==''){
+				$("#password").focus();
+				$("#pass").show();
+				return false;
+			}/* else{
+				var b;
+				$.ajax({
+					type:"post",
+					url:"ServletLogin",
+					async: false,
+					data:$("#slick-login").serialize(),
+					success:function(msg){
+						b = msg;
+					},
+					error:function(XMLHttpRequest,textStatus,errorThrown){
+						alert(XMLHttpRequest.status);
+						alert(XMLHttpRequest.readyState);
+						alert(textStatus);
+					}
+				});
+				if (b=='false'){ 
+					$("#cw").show();
+					$("#password").val("");
+					$("#username").select();
+					return false;
+				}
+			} */
+		}
+	</script>
+	</head>
+	<body>
+		<form id="slick-login" name="form1" action="ServletLogin" method="post" onsubmit="return save();">
+			<div class="lab"><label id="cw">用户名或密码错误！！</label></div>
+			<input type="text" id="username" class="placeholder" placeholder="用户名" autofocus="autofocus" name="username"/>
+			<div class="lab" >
+				<label id="user" for="username">请输入用户名！！</label>
+			</div>
+			<input type="password" id="password" class="placeholder" placeholder="密    码" name="password" />
+			<div class="lab">
+				<label id="pass">请输入密码！</label>
+			</div>
+			<input type="submit" id="enter" value="登   录" />
+		</form>
+	</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<!--解决双滚动条-->
+	<style type="text/css">
+       	 #center-tabs .tabs-panels>.panel>.panel-body {  
+	    	overflow: hidden;  
+	    }  
+    </style>
+    <script type="text/javascript">
+  //加载完成后运行
+    $(document).ready(function(){
+    	$('#cc').combobox({
+    	    url:'ServletBzglCheckBox',
+    	    editable:false,
+    	    panelHeight:'auto',
+    	    required:true,
+    	    valueField:'jzid',
+    	    textField:'name',
+    	    onHidePanel:function(){
+    	    	var jzid = $('#cc').combobox('getValue');//获取combobox选择的技站id
+    	    	$('#bzgl_dg').edatagrid({
+    	    		url: 'ServletBzCx?jzid='+ jzid,
+    	    		columns:[[
+						          {field:'pxid',width:10,title:'排序ID',
+						        	  editor:{
+						        		  		type:'validatebox',
+						        		  		options:{required:true}
+							  				  }
+						          },
+						          {field:'bz_name',width:60,title:'备注名称',
+						        	  editor:{
+						        		  		type:'validatebox',
+						        		  		options:{required:true}
+						  				     }
+					        	  }
+							]],
+    				saveUrl: 'ServletBzglSave?jzid='+ jzid,
+    				updateUrl:'ServletBzUpdate',
+    				destroyUrl: 'ServletBzDelete',
+    				onSave:function(index, row){
+    					$('#bzgl_dg').edatagrid('reload');
+    				},
+    				onDestroy:function(index, row){
+    					$('#bzgl_dg').edatagrid('reload');
+    				}
+    	    	});
+    	    }
+    	});
+	});
+    </script>
+	</head>
+<body class="easyui-layout">
+	<div data-options="region:'north',border: false" style="height: 50px;border-bottom: thin solid;display:flex;align-items:center;">
+		<label style="margin-left: 20px;font-size: 15px; ">所属技站：</label>
+		<input id="cc">
+	</div>
+	<div data-options="region:'center',border: false" style="width: 100%">
+		<table id="bzgl_dg" class="easyui-datagrid" style="width:auto;height:auto;" idField="id"
+		data-options="rownumbers:'true', border: false, fit:'true', fitColumns:true, singleSelect:true,toolbar:'#toolbar'">
+		</table>
+		<div id="toolbar">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#bzgl_dg').edatagrid('addRow')">新建备注</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#bzgl_dg').edatagrid('destroyRow')">删除备注</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#bzgl_dg').edatagrid('saveRow')">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#bzgl_dg').edatagrid('cancelRow')">取消</a>
+		</div>
+	</div>
+</body>
+</html>

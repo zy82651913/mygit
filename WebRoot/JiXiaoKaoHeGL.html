@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>化验室数据录入系统</title>
+	<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+	
+	<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<style type="text/css">
+		#fm,#fm_passxg{
+			margin:0;
+			padding:10px 30px;
+		}
+		.ftitle{
+			font-size:14px;
+			font-weight:bold;
+			color:#666;
+			padding:5px 0;
+			margin-bottom:10px;
+			border-bottom:1px solid #ccc;
+		}
+		.fitem{
+			margin-bottom:5px;
+		}
+		.fitem label{
+			display:inline-block;
+			width:80px;
+		}
+	</style>
+	<script type="text/javascript">
+	$(function(){
+		$('#jxkh_gl_dg').edatagrid({
+			url: 'ServletJiXiaoKaoHe_GL_CX',
+			saveUrl: 'ServletJiXiaoKaoHe_GL_Save',
+			updateUrl:'ServletJiXiaoKaoHe_GL_Update',
+			destroyUrl: 'ServletJiXiaoKaoHe_GL_Delete',
+			onSave:function(index, row){
+				$('#jxkh_gl_dg').edatagrid('reload');
+				$.messager.show({title:'通知',msg:'保存成功。'});
+			},
+			onDestroy:function(index, row){
+				$('#jxkh_gl_dg').edatagrid('reload');
+				$.messager.show({title:'通知',msg:'删除成功。'});
+			},
+			onError: function(index,row){
+				alert("错误："+row.msg);
+				$('#jxkh_gl_dg').edatagrid('reload');
+			},
+			onSelect:function(index, row){
+				$('#dingzhi_dg').edatagrid('clearSelections');//清除项目订制表的选中
+				var jxkhgl_id = $('#jxkh_gl_dg').datagrid("getSelected").jxkhgl_id;
+				$('#dlg_dingzhi').dialog('open').dialog('setTitle','项目订制');
+				$("#dingzhi_dg").edatagrid({
+					url: 'ServletJiXiaoKaoHe_DZ_CX',
+					saveUrl: 'ServletJiXiaoKaoHe_DZ_Save',
+					updateUrl:'ServletJiXiaoKaoHe_DZ_Update',
+					destroyUrl: 'ServletJiXiaoKaoHe_DZ_Delete?jxkhgl_id='+jxkhgl_id,
+					queryParams: {
+						jxkhgl_id: jxkhgl_id
+					},
+					columns:[[
+								{field:'jxkhdz_id', title:'订制id',align:'center',hidden:true},
+								{field:'jxkhgl_id', title:'管理id',align:'center'},
+								{field:'sjkxm_id', title:'数据库项目id',align:'center',editor:{
+										type:'textbox',
+										options:{
+											required:true,
+											editable:false,
+											handler:function(){
+												alert("chenggong");
+											}
+										}
+									}
+								},
+								{field:'sjkxm_name', title:'数据库项目名称',align:'center',editor:{type:'textbox',options:{required:true,editable:false}}},
+								{field:'sjkzb_name', title:'数据库指标名称',align:'center',editor:{type:'textbox',options:{editable:false}}},
+								{field:'sjkzb_bh', title:'数据库指标编号',align:'center',editor:{type:'textbox',options:{required:true,editable:false}}},
+								{field:'start_date', title:'开始日期',align:'center',editor:{type:'datebox',options:{required:true,editable:false}}},
+								{field:'start_time', title:'开始时间',align:'center',editor:{type:'validatebox',options:{required:true}}},
+								{field:'end_date', title:'结束日期',align:'center',editor:{type:'datebox',options:{required:true,editable:false}}},
+								{field:'end_time', title:'结束时间',align:'center',editor:{type:'validatebox',options:{required:true}}},
+								{field:'khfs', title:'考核方式',align:'center',editor:{
+										type:'combobox',
+										options:{
+											editable:false,
+											valueField:'val',
+											textField:'text',
+											panelHeight:'auto',
+											required:true,
+											data:[{val:'1',text:'个数'},{val:'2',text:'合格率'},{val:'3',text:'平均值'}]
+										}
+									}
+								},
+								{field:'khbz', title:'考核标准',align:'center',editor:{type:'textbox'}},
+								{field:'sjclass', title:'数据类型',align:'center',editor:{type:'textbox',options:{required:true,editable:false}}}
+					          ]],
+					/* onClickCell: function(index,field,value){//点击修改单元格
+						if (field=="xiugai") {
+							//$(this).datagrid('selectRow', index);
+							$('#sczb_dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+							$('#dingzhi_dg').edatagrid('editRow',index);//打开编辑
+							$('#dlg_zhibiao').dialog('open').dialog('setTitle','选择指标');
+							tree();
+						}
+					}, */
+					/* onBeforeUnselect: function(index, row){
+						console.log($('#dingzhi_dg').datagrid('getEditingRowIndexs'));
+						return false;
+					}, */
+					onSave:function(index, row){
+						$('#jxkh_gl_dg').edatagrid('reload');
+						$('#dingzhi_dg').edatagrid('reload');
+						$.messager.show({title:'通知',msg:'保存成功。'});
+					},
+					onError: function(index,row){
+						alert(row.msg);
+						$('#dingzhi_dg').edatagrid('reload');
+					},
+					onDestroy:function(index, row){
+						$('#dingzhi_dg').edatagrid('reload');
+						$('#jxkh_gl_dg').edatagrid('reload');
+						$.messager.show({title:'通知',msg:'删除成功。'});
+					}
+				})
+			}
+		});
+	});
+	/* 树*/
+	function tree() {
+			$("#tree_yb").tree({//项目列表
+				url:"ServletXMLB_Tree",
+				onLoadSuccess: function () {$(this).tree('collapseAll')},//加载完毕后关闭所有节点
+				onSelect: function(node){//单击节点运行
+					$('#tree_fh').find('.tree-node-selected').removeClass('tree-node-selected');//取消复合tree的选中
+					if ($(this).tree('isLeaf',node.target)) {//判断节点是否为叶子节点
+						var xmid = node.id; 
+						var xm_name = node.text;
+						$("#sczb_dg").edatagrid({
+							url:"ServletXm_ScCx?xmid="+xmid,
+							columns:[[
+										{field:'xmid', title:'项目id',align:'center',width:15,hidden:true},
+										{field:'zb_name', title:'指标名称',align:'center',width:40},
+										{field:'zbbh', title:'指标编号',align:'center',width:40},
+										{field:'xsdws', title:'小数点位数',align:'center',width:40,hidden:true},
+							          ]]
+						})
+					}else{
+						$('#sczb_dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+						$(this).tree('toggle',node.target);//打开节点
+					}
+				
+				}
+			})
+			$("#tree_fh").tree({
+				data:[{
+					text:"复合数据"
+				}],
+				onSelect: function(node){
+					$('#tree_yb').find('.tree-node-selected').removeClass('tree-node-selected');//取消一般tree的选中
+					$("#sczb_dg").edatagrid({
+						url:"Servlet_FuHeZhiBiaoGuanLi_DG",
+						columns:[[
+									{field:'fhzb_id', title:'复合指标id',align:'center',width:15,hidden:true},
+									{field:'fhzb_name', title:'复合指标名称',align:'center',width:40},
+									{field:'fhzb_bh', title:'复合指标编号',align:'center',width:40},
+									{field:'xsws', title:'小数点位数',align:'center',width:40,hidden:true},
+						          ]]
+					})
+				}
+			})
+	}
+	/* 项目订制 */
+	function dingzhi_add() {
+		try {
+			var jxkhgl_id = $('#jxkh_gl_dg').datagrid("getSelected").jxkhgl_id;
+			var row=$('#dingzhi_dg').datagrid('getSelected');
+			if (row) {
+				$('#dingzhi_dg').edatagrid('addRow',{index:0,row:row});
+			}
+			$('#sczb_dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+			$('#dlg_zhibiao').dialog('open').dialog('setTitle','选择指标');
+			tree();
+		} catch (e) {
+			$.messager.alert('警告','请选择一个项目');
+		}
+	}
+	/* 选择项目指标保存 */
+	function xmzb_save(){
+		try {
+			if ($('#tree_yb').tree('getSelected')) {
+				var jxkhgl_id = $('#jxkh_gl_dg').datagrid("getSelected").jxkhgl_id;
+				var sjkxm_id = $('#tree_yb').tree('getSelected').id;
+				var sjkxm_name = $('#tree_yb').tree('getSelected').text;
+				var sjkzb_name = $('#sczb_dg').datagrid('getSelected').zb_name;
+				var sjkzb_bh = $('#sczb_dg').datagrid('getSelected').zbbh;
+				var sjclass = "一般数据";
+				if ($('#dingzhi_dg').datagrid('getSelected')) {//如果选中
+					var index = $('#dingzhi_dg').datagrid('getRowIndex',$('#dingzhi_dg').datagrid('getSelected'));
+					var ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkxm_id'});
+					$(ed.target).textbox('setValue', sjkxm_id);
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkxm_name'});
+					$(ed.target).textbox('setValue', sjkxm_name);
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkzb_name'});
+					$(ed.target).textbox('setValue', sjkzb_name);
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkzb_bh'});
+					$(ed.target).textbox('setValue', sjkzb_bh);
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjclass'});
+					$(ed.target).textbox('setValue', sjclass);
+				} else {
+					$('#dingzhi_dg').edatagrid('addRow',{
+						row:{
+							jxkhgl_id: jxkhgl_id,
+							sjkxm_id: sjkxm_id,
+							sjkxm_name: sjkxm_name,
+							sjkzb_name: sjkzb_name,
+							sjkzb_bh: sjkzb_bh,
+							sjclass: sjclass
+						}
+					});
+				}
+				$('#dlg_zhibiao').dialog('close');
+			} else if ($('#tree_fh').tree('getSelected')) {
+				var jxkhgl_id = $('#jxkh_gl_dg').datagrid("getSelected").jxkhgl_id;
+				var sjkxm_id = $('#sczb_dg').datagrid('getSelected').fhzb_id;
+				var sjkxm_name = $('#sczb_dg').datagrid('getSelected').fhzb_name;
+				var sjkzb_bh = $('#sczb_dg').datagrid('getSelected').fhzb_bh;
+				var sjclass = "复合数据";
+				if ($('#dingzhi_dg').datagrid('getSelected')) {//如果选中
+					var index = $('#dingzhi_dg').datagrid('getRowIndex',$('#dingzhi_dg').datagrid('getSelected'));
+					var ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkxm_id'});
+					$(ed.target).textbox('setValue', sjkxm_id);
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkxm_name'});
+					$(ed.target).textbox('setValue', sjkxm_name);
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkzb_name'});
+					$(ed.target).textbox('setValue', '');
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjkzb_bh'});
+					$(ed.target).textbox('setValue', sjkzb_bh);
+					ed = $('#dingzhi_dg').datagrid('getEditor', {index:index,field:'sjclass'});
+					$(ed.target).textbox('setValue', sjclass);
+				} else {
+					$('#dingzhi_dg').edatagrid('addRow',{
+						row:{
+							jxkhgl_id: jxkhgl_id,
+							sjkxm_id: sjkxm_id,
+							sjkxm_name: sjkxm_name,
+							sjkzb_bh: sjkzb_bh,
+							sjclass: sjclass
+						}
+					});
+				}
+				$('#dlg_zhibiao').dialog('close');
+			} else {
+				$.messager.alert('警告','请正确选择指标后保存！');
+			}
+			
+		} catch (e) {
+			$.messager.alert('警告','请正确选择指标！');
+		}
+	}
+	function xiugai(){
+		try {
+			$('#dingzhi_dg').datagrid('getSelected').id;
+			var index = $('#dingzhi_dg').datagrid('getRowIndex',$('#dingzhi_dg').datagrid('getSelected'));//获得选中行
+			$('#sczb_dg').datagrid('loadData', { total: 0, rows: [] });//清除缓存数据
+			$('#dingzhi_dg').edatagrid('editRow',index);//打开编辑
+			$('#dlg_zhibiao').dialog('open').dialog('setTitle','选择指标');
+			tree();
+		} catch (e) {
+			$.messager.alert('警告','请选择一个项目');
+		}
+		
+	}
+	</script>
+</head>
+<body>	 
+	<div class="easyui-layout" data-options="fit:true">
+		<div data-options="region:'center',collapsible:false, title:'绩效考核项目列表'" style="width:30%;height: 100%;">
+			<!--绩效考核管理表  -->
+			<table id="jxkh_gl_dg" class="easyui-edatagrid" style="width:auto;height:auto" idField="jxkhgl_id"
+					data-options="border:false, rownumbers:'true', fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#toolbar'">
+				<thead>
+					<tr>
+						<th field="jxkhgl_id" hidden="true">ID</th>
+						<th field="pxid" editor="{type:'validatebox',options:{required:true}}">排序号</th>
+						<th field="cj" editor="{type:'validatebox',options:{required:true}}">车间</th>
+						<th field="khxm_name" editor="{type:'validatebox',options:{required:true}}">考核项目名称</th>
+						<th field="sfdz">是否已订制</th>
+					</tr>
+				</thead>
+			</table>
+			<!--表工具  -->
+			<div id="toolbar">
+				<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#jxkh_gl_dg').edatagrid('addRow',{row:{sfdz:'否'}})" >新建</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#jxkh_gl_dg').edatagrid('destroyRow')">删除</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#jxkh_gl_dg').edatagrid('saveRow')">保存</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#jxkh_gl_dg').edatagrid('cancelRow')">取消</a>
+			</div>
+		</div>
+		
+		<div data-options="region:'east',collapsible:false, title:'绩效考核项目订制'" style="width:70%;height: 100%;">
+			<!-- 绩效考核订制表 -->
+			<table id="dingzhi_dg" class="easyui-datagrid" style="width:auto;height:auto;" idField="jxkhdz_id"
+			data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true', toolbar:'#toolbar_dingzhi'">
+			</table>
+			<!--表工具  -->
+			<div id="toolbar_dingzhi">
+				<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="dingzhi_add()" >新建</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="xiugai()" >修改</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#dingzhi_dg').edatagrid('destroyRow')">删除</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#dingzhi_dg').edatagrid('saveRow')">保存</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#dingzhi_dg').edatagrid('cancelRow')">取消</a>
+			</div>
+		</div>
+	</div>
+	
+	<div id="dlg_zhibiao" class="easyui-dialog" style="width:500px;height:500px;"
+				 buttons="#dlg-buttons" closed="true">
+				 
+			<div class="easyui-layout" data-options="fit:true">
+				<div data-options="region:'west',title:'选择项目',collapsible:false" style="width:200px;">
+					<!-- 树 -->
+					<ul id="tree_yb" class="easyui-tree" style="padding: 5px 5px 0px 5px; width:auto; height:auto;"></ul>
+					<ul id="tree_fh" class="easyui-tree" style="padding: 0px 5px 5px 5px; width:auto; height:auto;"></ul>
+				</div>
+				<div data-options="region:'center',title:'选择指标',collapsible:false" style="width:300px;">
+					<!-- 输出指标表 -->
+					<table id="sczb_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+					data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',scrollbarSize:0">
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="dlg-buttons">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-save" onclick="xmzb_save()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_zhibiao').dialog('close')">取消</a>
+		</div>
+</body>
+</html>

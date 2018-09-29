@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- <meta charset="UTF-8"> -->
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />  
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+<!--     <style>
+    .datagrid-cell,.datagrid-header .datagrid-cell span{font-size: 14px;};
+    </style> -->
+	    <script type="text/javascript">
+	  //加载完成后运行
+		    $(document).ready(function(){//初始化日期控件
+		    	function myformatter(date){//格式化日期 
+	    		    var y = date.getFullYear();  
+	    		    var m = date.getMonth()+1;  
+	    		    var d = date.getDate();  
+	    		    return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);  
+	    		}
+		    	$("#err").hide();//隐藏错误信息lable
+		    	$("#banbao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
+				$('#banci').combobox({//班次组合框事件
+		    		onLoadSuccess: function(none){
+		    			var mydate = new Date($.ajax({async: false}).getResponseHeader("Date"));//当前时间
+		    			var hours = parseInt(mydate.getHours());//当前小时,转换为int
+		    			if (hours>=0 && hours<8) {//根据时间设置班次
+		    				$('#banci').combobox('setValue', '1');
+						} else if(hours>=8 && hours<16) {
+							$('#banci').combobox('setValue', '2');
+						} else if(hours>=16 && hours<24){
+							$('#banci').combobox('setValue', '3');
+						}
+		    		}
+		    	});
+		    });
+	  		function chaxun(){
+	  			$("#biaotou1").empty();//清除表头
+	  			$("#biaotou2").empty();//清除表头
+	  			$("#banbao_tab").empty();//清除表格
+	  			var date = $("#banbao_datebox").datebox('getValue');
+				var bc = $('#banci').combobox('getValue');
+				var bc_name = $('#banci').combobox('getText');
+				var banbao_id = $('#banbao_cbb').combobox('getValue');
+				var banbao_name = $('#banbao_cbb').combobox('getText');
+				
+				$.ajax({//查询数据
+					type:"post",
+					url:'ServletBanBao_table',
+					async:true,
+					dataType: "json",
+					data:{date:date, bc:bc, banbao_id:banbao_id},
+					success:function(data) {
+						//整理data，添加单元格，不全表格
+						var arr = new Array();
+						var max;
+						for (var i = 0; i < data.length; i++) {//遍历出数组中数组的长度
+							arr[i] = data[i].length;
+						}
+						max = Math.max.apply(null, arr);
+						var min = Math.min.apply(null, arr);
+						for (var i = 0; i < data.length; i++) {
+							if (data[i].length < max) {
+								var num = data[i].length;
+								for (var j = 0; j < max - num; j++) {
+									data[i].push("");
+								}
+							}
+						}
+						
+						if (data == false) {
+							alert("没有数据");
+						}else{
+							$("#biaotou1").append(banbao_name);
+							$("#biaotou2").append('日期：'+date+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;班次：'+bc_name);
+						}
+						for (var i = 0; i < data.length; i++) {
+							$("#banbao_tab").append('<tr>');
+							for (var j = 0; j < data[i].length; j++) {
+								$("#banbao_tab").append('<td style="padding:5px;font-size: 12px;">'+data[i][j]+'</td>');
+							}
+							$("#banbao_tab").append('</tr>');
+						}
+						/* $("#banbao_tab").append('<tr>');
+						$("#banbao_tab").append('<td style="padding:5px;font-size: 30px;">'+banbao_name+'</td>');
+						$("#banbao_tab").append('</tr>'); */
+						
+					},
+					error:function(XMLHttpRequest,textStatus,errorThrown){
+						alert(XMLHttpRequest.status);
+						alert(XMLHttpRequest.readyState);
+						alert(textStatus);
+					}
+				})
+				
+	  		}
+	  		function print(obj){
+	  			/* var newstr = document.getElementById("print").innerHTML;
+	  			console.log(newstr);
+	  			var oldstr = document.body.innerHTML; 
+	  			document.body.innerHTML = newstr;
+	  			window.print(); 
+	  			document.body.innerHTML = oldstr; 
+	  			return false; */
+	  			var newWindow=window.open("打印窗口","_blank");  
+	  		  	var docStr = obj.innerHTML;  
+	  		  	newWindow.document.write(docStr);  
+	  		  	newWindow.document.close();  
+	  		  	newWindow.print();  
+	  		  	newWindow.close()
+	  		}
+	  		function excel(){//导出Excel
+	  			try {
+	  				var date = $("#banbao_datebox").datebox('getValue');
+					var bc = $('#banci').combobox('getValue');
+					var bc_name = $('#banci').combobox('getText');
+					var banbao_id = $('#banbao_cbb').combobox('getValue');
+					var banbao_name = $('#banbao_cbb').combobox('getText');
+	  				window.location.href = 'ServletBanBao_Excel?date=' + date + '&bc='+bc+ '&bc_name='+bc_name+ '&banbao_id='+banbao_id+'&banbao_name='+banbao_name;
+	  			} catch (e) {
+	  				//$.messager.show({title:'警告',msg:'请选择技站。'});
+	  			}
+	  		}
+	    </script>
+	</head>
+<body class="easyui-layout">
+	<!-- 工具 -->
+	<div data-options="region:'north', border: false" style="height: auto; overflow: hidden;">
+		<div id="toolbar" style="width:100%; padding: 3px;background:#eee;">
+			<label style="margin-left: 10px;">化验时间：</label>
+			<input id="banbao_datebox" type="text" class="easyui-datebox" required="required" 
+					style="width: 100px;" data-options="editable: false">
+			<label style="margin-left: 10px;">班次：</label>
+			<select id="banci" class="easyui-combobox" panelHeight='auto' editable='false' style="width: 80px;">
+				<option value="1">零点</option>
+				<option value="2">白班</option>
+				<option value="3">四点</option>
+			</select>
+			<label style="margin-left: 10px;">选择班报：</label>
+			<input id=banbao_cbb class="easyui-combobox" name="banbao" style="width: 110px;" data-options="editable: false,panelHeight:'auto',valueField:'value',textField:'text',url:'ServletBanBao_combobox'" />
+			<a id="chaxun_btn" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" iconCls="icon-search" href="#" onclick="chaxun()">查询</a>
+			<a id="print_btn" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" iconCls="icon-print" href="javascript:;" onclick="print(document.getElementById('print'))">打印</a>
+			<a id="excel" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" data-options="iconCls:'icon-save'" href="#" onclick="excel()">导出到Excel</a>
+			<label id="shenhe_lab" style="margin-left: 10px; font-size: 16px;"></label>
+		</div>
+	</div>
+   <!-- 内容显示区 -->
+	<div id="print_layout" data-options="region:'center', border: false, collapsible:false">
+		<div id="print">
+			<h1 id="biaotou1" style="margin:auto; font-size: 30px; text-align:center;"></h1>
+			<p id="biaotou2" style="margin:5px auto; font-size: 16px; text-align:center;"></p>
+			<table id="banbao_tab" border="1" cellspacing="0" cellpadding="0"
+				style="margin: auto; text-align:center; border-collapse: collapse; font-size: 14px; white-space: nowrap;">
+			</table>
+		</div>
+	</div>
+
+
+	
+</body>
+</html>

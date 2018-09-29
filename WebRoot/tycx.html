@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="js/base64.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+<!--     <style>
+    .datagrid-cell,.datagrid-header .datagrid-cell span{font-size: 14px;};
+    </style> -->
+ <script type="text/javascript">
+//加载完成后运行
+$(function() {
+	$('#tree_xmlb').tree({
+		url:'ServletCheJianTree',
+		cache:false,
+		loadFilter: function(data){
+			//console.log(jsonbl(data));
+	        return jsonbl(data);   
+	    },
+		onClick: function(node){//单击节点运行
+				var jizhanid = node.id;//取得所选的节点id，此id为技站id，判断液相固相
+				var hysj_date = $("#datebox").datebox('getValue');
+		}
+	});
+	var tree = {  
+		    id:'',  //节点的ID
+		    text:'',  //节点显示的文字
+		    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+		    checked:'',  //指示节点是否被选中。
+		    attributes:'',  //给一个节点添加的自定义属性。
+		    children:''  //定义了一些子节点的节点数组。
+		}
+	function jsonbl(data){  
+		    var easyTree = [];
+			var jizhanid = null; 
+			var i=0;
+		    $.each(data,function(index,item){
+				ii=0;
+				if(item.jizhanid != jizhanid){
+					easyTree[i] = bl(data,item);
+					jizhanid = item.jizhanid;
+					i++;
+				}
+		     }); 
+		    return easyTree;  
+		}
+	//此处是把后台传过来的json数据转成easyui规定的格式  
+	function bl(data,item){  
+	    var tree = new Object();
+		var jizhanid = item.jizhanid;
+		var children = [];
+			tree.id = item.jizhanid;  
+		    tree.text = item.jizhanname;  
+		    tree.state = 'open';  
+		    tree.checked = false;
+			tree.attributes = ''; 
+			return tree;
+	}
+  	$('#datebox').datebox({
+        onShowPanel : function() {// 显示日趋选择对象后再触发弹出月份层的事件，初始化时没有生成月份层  
+            span.trigger('click'); // 触发click事件弹出月份层  
+            if (!tds)  
+                setTimeout(function() {// 延时触发获取月份对象，因为上面的事件触发和对象生成有时间间隔  
+                    tds = p.find('div.calendar-menu-month-inner td');  
+                    tds.click(function(e) {  
+                        e.stopPropagation(); // 禁止冒泡执行easyui给月份绑定的事件  
+                        var year = /\d{4}/.exec(span.html())[0]// 得到年份  
+                        , month = parseInt($(this).attr('abbr'), 10); // 月份  
+                        $('#datebox').datebox('hidePanel')// 隐藏日期对象  
+                        .datebox('setValue', year + '-' + month); // 设置日期的值  
+                    });
+                }, 0);  
+        },  
+        parser : function(s) {// 配置parser，返回选择的日期  
+            if (!s) return new Date();  
+            var arr = s.split('-');  
+            return new Date(parseInt(arr[0], 10), parseInt(arr[1], 10) - 1 , 1);  
+        },  
+        formatter : function(d) {  
+        	var currentMonth = (d.getMonth()+1);
+            var currentMonthStr = currentMonth < 10 ? ('0' + currentMonth) : (currentMonth + '');
+            return d.getFullYear() + '-' + currentMonthStr; 
+        }// 配置formatter，只返回年月  
+    });  
+    var p = $('#datebox').datebox('panel'), // 日期选择对象  
+    tds = false, // 日期选择对象中月份  
+    span = p.find('span.calendar-text'); // 显示月份层的触发控件 
+    function myformatter(date){//格式化日期 
+	    var y = date.getFullYear();  
+	    var m = date.getMonth()+1;  
+	    var d = date.getDate();  
+	    return y+'-'+(m<10?('0'+m):m); 
+	}
+    var mydate = myformatter(new Date($.ajax({async: false}).getResponseHeader("Date")));
+    $("#datebox").datebox("setValue",mydate);//日期控件默认服务器当前日期
+});
+
+function chaxun(){
+	$('#dg').datagrid('loadData', { total: 0, rows: [] });//清空表格数据
+	$('#dg').datagrid({  
+        columns:[[]],  
+        rownumbers:false,  
+        pagination:false  
+    });  
+	var date = $("#datebox").datebox('getValue');
+	try {
+		var jizhanid = $("#tree_xmlb").tree('getSelected').id;
+	} catch (e) {
+		$.messager.show({title:'警告',msg:'请选择技站。'});
+	}
+	var msg;
+	$.ajax({//查询数据
+		type:"post",
+		url:'ServletTianYang_CX',
+		async:true,
+		dataType: "json",
+		data:{date : date, jizhanid : jizhanid},
+		success:function(data) {
+			msg = data;
+			var n = 0;
+			var col = new Array();
+			var a_arr = new Array();
+			var b_arr = new Array();
+			for (var i = 0; i < data[0].length;) {
+				var count = 0;
+				for (var j = 0; j < data[0].length; j++) {
+					if (data[0][i].xm_name === data[0][j].xm_name) {
+						count++;
+					}
+				}
+				a_arr[n] = {title: data[0][i].xm_name, colspan: count};
+				i+=count;
+				n++;
+			}
+			/* for (var i = 0; i < data[0].length; i++) {
+				a_arr[i] = {title: data[0][i].xm_name, align: 'center', colspan: 3};
+			} */
+			for (var i = 0; i < data[0].length; i++) {
+				b_arr[i] = {field : data[0][i].fid, title : data[0][i].zb_name, width: 80, align : 'center'};
+			}
+			col[0] = a_arr;
+			col[1] = b_arr;
+			data = data[1];
+			$("#dg").datagrid({
+				data:data,
+				columns:col,
+				frozenColumns: [[    
+	                             { title: '日期', field: 'hysj_date', align:'center', width: 80}
+	                         ]],
+				fit:true,
+				//fitColumns:true,
+				autoRowHeight:false,
+				onLoadSuccess:function(data){
+					avg();
+				}
+			})
+			//console.log(data[0][0]);
+			//console.log(data);
+		},
+		error:function(XMLHttpRequest,textStatus,errorThrown){
+			alert(XMLHttpRequest.status);
+			alert(XMLHttpRequest.readyState);
+			alert(textStatus);
+		}
+	});
+	function avg(){
+		var avgObj=new Object();
+		var rows = $('#dg').datagrid('getRows')//获取当前的数据行
+		for (var j = 0; j < rows.length; j++) {
+			for (var key in rows[j]) {
+				var sum = 0;
+				var num = 0;
+				var avg = 0;
+				var xsdws;
+				for (var i = 0; i < rows.length; i++) {
+					if (key == "hysj_date") {
+						avgObj[key] = "月平均";
+						break;
+					}else{
+						if (typeof(rows[i][key])!="undefined") {
+							var val = rows[i][key];
+							sum+=val*1;
+							num++;
+						}
+					}
+				}
+				if (key != "hysj_date") {
+					avg = sum/num;
+					if (avg == 0) {
+						avgObj[key] = "";
+					}else{
+						for (var int = 0; int < msg[0].length; int++) {
+							if (key == msg[0][int].fid) {
+								xsdws = msg[0][int].xsdws;
+							}
+						}
+						avgObj[key] = avg.toFixed(xsdws);
+					}
+				}
+			}
+		}
+		$('#dg').datagrid('appendRow', avgObj);
+	}
+}
+function excel(){//导出Excel
+	var date = $("#datebox").datebox('getValue');
+	try {
+		var jizhanid = $("#tree_xmlb").tree('getSelected').id;
+		var jizhanname = $("#tree_xmlb").tree('getSelected').text;
+		window.location.href = 'ServletTianYng_Excel?date=' + date + '&jizhanid='+jizhanid+ '&jizhanname='+jizhanname;
+	} catch (e) {
+		$.messager.show({title:'警告',msg:'请选择技站。'});
+	}
+}
+  </script>
+</head>
+<body class="easyui-layout">
+<!-- 菜单 -->
+	<div data-options="region:'west'" style="width:13.5%;">
+		<div style="height: 20px;background-color: #eee;font-size: 14px;font-weight: 700;padding: 3px;text-align: center;">项目列表</div>
+		<ul id="tree_xmlb" class="easyui-tree" style="padding: 5px;"></ul><!--项目列表tree-->
+	</div>
+   <!-- 内容显示区 -->
+	<div data-options="region:'center', border: false,  title:'天样查询'" style="width: 100%;height: 100%;;overflow:hidden">
+		<table id="dg" class="easyui-datagrid" style="width:auto; height:auto; overflow: scroll;"
+				data-options=" toolbar:'#toolbar'">
+		</table>
+		<!--工具栏-->
+		<div id="toolbar" style="width:100%; padding: 3px;background:#eee;">
+			<label style="margin-left: 10px;">化验时间：</label>
+			<input id="datebox" type="text" class="easyui-datebox" required="required" 
+					style="width: 100px;" data-options="editable: false">
+			<a id="chaxun" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" data-options="iconCls:'icon-search'" href="#" onclick="chaxun()">查询</a>
+			<a id="excel" class="easyui-linkbutton" style="margin-left: 10px;padding: 0 5px;" data-options="iconCls:'icon-save'" href="#" onclick="excel()">导出到Excel</a>
+			<label id="shenhe_lab" style="margin-left: 10px; font-size: 16px;"></label>
+		</div>
+	</div>
+</body>
+</html>

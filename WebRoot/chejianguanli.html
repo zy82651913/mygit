@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>化验室数据录入系统</title>
+	<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+	
+	<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<style type="text/css">
+		#fm,#fm_passxg{
+			margin:0;
+			padding:10px 30px;
+		}
+		.ftitle{
+			font-size:14px;
+			font-weight:bold;
+			color:#666;
+			padding:5px 0;
+			margin-bottom:10px;
+			border-bottom:1px solid #ccc;
+		}
+		.fitem{
+			margin-bottom:5px;
+		}
+		.fitem label{
+			display:inline-block;
+			width:80px;
+		}
+	</style>
+	<script type="text/javascript">
+		$(function(){
+			$('#chejian_dg').edatagrid({
+				url: 'ServletCheJianCx',
+				saveUrl: 'ServletCheJianSave',
+				updateUrl:'ServletCheJianUpdate',
+				destroyUrl: 'ServletCheJianDelete',
+				onSave:function(index, row){
+					$('#chejian_dg').edatagrid('reload');
+				}
+			});
+		});
+	</script>
+</head>
+<body>
+	<!--车间表  -->
+	<table id="chejian_dg" class="easyui-datagrid" style="width:auto;height:auto" idField="id"
+			data-options="rownumbers:'true', fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#toolbar'">
+		<thead>
+			<tr>
+				<th field="id" width="10">车间ID</th>
+				<th field="pxid" width="10" editor="{type:'validatebox',options:{required:true}}">排序ID</th>
+				<th field="name" width="50" editor="{type:'validatebox',options:{required:true}}">车间名称</th>
+			</tr>
+		</thead>
+	</table>
+	<!--表工具  -->
+	<div id="toolbar">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#chejian_dg').edatagrid('addRow')">新建</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#chejian_dg').edatagrid('destroyRow')">删除</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#chejian_dg').edatagrid('saveRow')">保存</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#chejian_dg').edatagrid('cancelRow')">取消</a>
+	</div>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>化验室数据录入系统</title>
+		<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+		
+		<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+		<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+		
+		<script type="text/javascript">
+		$(document).ready(function(){
+			$('#xtsc_jzcj').tree({
+				url:'ServletCheJianTree',
+				cache:false,
+				loadFilter: function(data){
+					//console.log(jsonbl(data));
+			        return jsonbl(data);   
+			    },
+				onClick: function(node){//单击节点运行
+					var chejianid = node.id;
+					$('#xtscxm_dg').edatagrid({
+						url: 'ServletXmCx?id='+ chejianid,
+						columns:[[
+						  		{field:'name',width:100},
+						      ]],
+						onSelect:function(rowIndex,rowData){
+							var xmid = rowData.id;
+							var chejianid = node.id;
+							$('#xtsczb_dg').edatagrid({
+								url: 'ServletXm_ScCx?xmid='+ xmid,
+								singleSelect:false,
+								showHeader:true,
+								columns:[[
+								  		{field:'ck',title:'',checkbox:true},
+								  		{field:'zb_name',title:'输出指标',width:100}
+								      ]]
+							});
+						}
+					});
+				}
+			});
+			var tree = {  
+				    id:'',  //节点的ID
+				    text:'',  //节点显示的文字
+				    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+				    checked:'',  //指示节点是否被选中。
+				    attributes:'',  //给一个节点添加的自定义属性。
+				    children:''  //定义了一些子节点的节点数组。
+				}
+			function jsonbl(data){  
+				    var easyTree = [];
+					var jizhanid = null; 
+					var i=0;
+				    $.each(data,function(index,item){
+						ii=0;
+						if(item.jizhanid != jizhanid){
+							easyTree[i] = bl(data,item);
+							jizhanid = item.jizhanid;
+							i++;
+						}
+				     }); 
+				    return easyTree;  
+				}
+			//此处是把后台传过来的json数据转成easyui规定的格式  
+			function bl(data,item){  
+			    var tree = new Object();
+				var jizhanid = item.jizhanid;
+				var children = [];
+					tree.id = item.jizhanid;  
+				    tree.text = item.jizhanname;  
+				    tree.state = 'open';  
+				    tree.checked = false;
+					tree.attributes = ''; 
+					tree.children=node();
+					function node(){
+						for(var a=0;a<data.length;a++){
+							if(data[a].jizhanid==jizhanid){
+								var zjdobj = new Object();//子节点对象
+								zjdobj.id = data[a].chejianid;  
+							    zjdobj.text = data[a].chejianname;  
+							    zjdobj.state = 'open';  
+							    zjdobj.checked = false;
+								zjdobj.attributes = '';  
+								children[ii] = zjdobj;
+								ii++;
+								
+							}
+						} 
+					return children;
+					}
+						return tree;
+			}
+	    });
+		/*向父窗口传递参数*/
+		function cd(){
+			var a = $('#xtsczb_dg').datagrid('getChecked');
+			return a;
+		}
+		</script>
+	</head>
+	<body>
+		<div class="easyui-layout" data-options="fit:true">
+			<div data-options="region:'west',title:'选择车间',collapsible:false" style="width:200px;">
+				<!-- 车间树 -->
+				<ul id="xtsc_jzcj" class="easyui-tree" style="padding: 5px;width:auto;height:auto;"></ul>
+			</div>
+			<div data-options="region:'center',title:'选择项目',collapsible:false" style="width:200px;">
+				<!-- 项目表 -->
+				<table id="xtscxm_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+				data-options="border: false, fit:'true', fitColumns:'true', singleSelect:'true',showHeader:false,scrollbarSize:0">
+				</table>
+			</div>
+			<div data-options="region:'east',collapsible:false" style="width:200px;">
+				<!-- 输入指标表 -->
+				<table id="xtsczb_dg" class="easyui-datagrid" style="width:auto;height:auto;"
+				data-options="border: false, fit:'true', fitColumns:'true',showHeader:false,scrollbarSize:0,method:'post'">
+				</table>
+			</div>
+		</div>
+	</body>
+</html>

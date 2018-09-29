@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>化验室数据录入系统</title>
+	<link rel="shortcut icon" href="favicon.ico" mce_href="favicon.ico" type="image/x-icon" />
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/default/easyui.css">
+	<link rel="stylesheet" type="text/css" href="jquery-easyui-1.5.3/themes/icon.css">
+	
+	<script type="text/javascript" src="js/jquery-3.1.0.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.easyui.min.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/locale/easyui-lang-zh_CN.js" charset="utf-8"></script>
+	<script type="text/javascript" src="jquery-easyui-1.5.3/jquery.edatagrid.js" charset="utf-8"></script>
+	<style type="text/css">
+		#fm,#fm_passxg{
+			margin:0;
+			padding:10px 30px;
+		}
+		.ftitle{
+			font-size:14px;
+			font-weight:bold;
+			color:#666;
+			padding:5px 0;
+			margin-bottom:10px;
+			border-bottom:1px solid #ccc;
+		}
+		.fitem{
+			margin-bottom:5px;
+		}
+		.fitem label{
+			display:inline-block;
+			width:80px;
+		}
+	</style>
+	<script type="text/javascript">
+		$(function(){
+			$('#jizhan_dg').edatagrid({
+				url: 'ServletJiZhanCx',
+				saveUrl: 'ServletJiZhanSave',
+				updateUrl:'ServletJiZhanUpdate',
+				destroyUrl: 'ServletJiZhanDelete',
+				onSave:function(index, row){
+					$('#jizhan_dg').edatagrid('reload');
+				}
+			});
+		});
+		/*创建用户绑定角色tree*/
+		function boundCheJian() {
+			var id = $('#jizhan_dg').datagrid('getSelected').id;
+			$('#dlg_boundCheJian').dialog('open').dialog('setTitle','绑定车间');
+			$("#tree_boundCheJian").tree({
+				url:'ServletJiZhan_CheJianTree',
+				checkbox:true,
+				cache:false,
+				loadFilter: function(data){ 
+					        return jsonbl(data);   
+					    },
+				onLoadSuccess:function(){//Tree加载完成后绑定菜单
+					$.post('ServletJiZhanCheckbox',{id:id},function(result){
+						for(var j=0;j<result.length;j++){
+							var node = $('#tree_boundCheJian').tree('find', result[j].id);
+							$('#tree_boundCheJian').tree('check',node.target); 
+						}
+					});
+					 
+				}
+			});
+		}
+		//此处是easyui-tree的json格式  
+		var tree = {  
+		    id:'',  //节点的ID
+		    text:'',  //节点显示的文字
+		    state:'',  //节点状态，有两个值  'open' or 'closed', 默认为'open'. 当为‘closed’时说明此节点下有子节点否则此节点为叶子节点
+		    checked:'',  //指示节点是否被选中。
+		    attributes:'',  //给一个节点添加的自定义属性。
+		    children:''  //定义了一些子节点的节点数组。
+		} 
+	//此处是把后台传过来的json数据转成easyui规定的格式  
+		function bl(item){  
+		    var tree = new Object();
+			var children = [];
+				tree.id = item.id;  
+			    tree.text = item.name;
+			    tree.state = 'open';  
+			    tree.checked = false; 
+			return tree;
+		}  
+		function jsonbl(data){  
+		    var easyTree = []; 
+		    $.each(data,function(index,item){
+				easyTree[index] = bl(item);
+		     }); 
+		    return easyTree;  
+		}
+		/*绑定车间的保存*/
+		function save_boundCheJian() {
+			var node = $('#tree_boundCheJian').tree('getChecked');//选择后的Tree数组
+			var id = $('#jizhan_dg').datagrid('getSelected').id;//选取的技站ID
+			var chejian_jizhan = [];
+			chejian_jizhan[0]=id;
+			for(var i=1;i<=node.length;i++){
+				chejian_jizhan[i]=node[i-1].id;
+			}
+			//console.log(chejian_jizhan);
+			$.ajax({
+				type:"post",
+				url:"ServletJiZhanBoundSc",
+				async:true,
+				data:{"chejian_jizhan":chejian_jizhan},
+				traditional: true,//这里设置为true,不用jquery转换
+				/* error:function(request){
+					alert("删除数据失败");
+				}, */
+				success:function(){
+					$.ajax({//插入数据
+						type:"post",
+						url:"ServletJiZhanBoundCr",
+						async:true,
+						data:{"chejian_jizhan":chejian_jizhan},
+						traditional: true,//这里设置为true,不用jquery转换
+						/* error:function(request){
+							alert("插入数据失败");
+						}, */
+						success:function(){
+							$('#dlg_boundCheJian').dialog('close');
+							alert("保存成功！");
+						},
+						error:function(XMLHttpRequest,textStatus,errorThrown){
+							alert(XMLHttpRequest.status);
+							alert(XMLHttpRequest.readyState);
+							alert(textStatus);
+							alert("插入数据失败");
+						},
+					
+					});
+
+				},
+				error:function(XMLHttpRequest,textStatus,errorThrown){
+					alert(XMLHttpRequest.status);
+					alert(XMLHttpRequest.readyState);
+					alert(textStatus);
+					alert("删除数据失败");
+				},
+			
+			});
+
+			//console.log(node);
+
+		}
+	</script>
+</head>
+<body>
+	<!--车间表  -->
+	<table id="jizhan_dg" class="easyui-datagrid" style="width:auto;height:auto" idField="id"
+			data-options="rownumbers:'true', fit:'true', fitColumns:'true', singleSelect:'true',toolbar:'#toolbar'">
+		<thead>
+			<tr>
+				<th field="id" width="10">技站ID</th>
+				<th field="pxid" width="10" editor="{type:'validatebox',options:{required:true}}">排序ID</th>
+				<th field="name" width="50" editor="{type:'validatebox',options:{required:true}}">技站名称</th>
+			</tr>
+		</thead>
+	</table>
+	<!--表工具  -->
+	<div id="toolbar">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="javascript:$('#jizhan_dg').edatagrid('addRow')">新建</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="javascript:$('#jizhan_dg').edatagrid('destroyRow')">删除</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="javascript:$('#jizhan_dg').edatagrid('saveRow')">保存</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-undo" plain="true" onclick="javascript:$('#jizhan_dg').edatagrid('cancelRow')">取消</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-mini-add" plain="true" onclick="boundCheJian()">绑定车间</a>
+	</div>
+	<!--绑定车间对话框  -->
+	<div id="dlg_boundCheJian" class="easyui-dialog" style="width:400px;height:400px;padding:10px 20px"
+			 buttons="#dlg-buttons" closed="true">
+		<ul id="tree_boundCheJian"></ul><!--定义用户绑定菜单的tree-->
+	</div>
+	<div id="dlg-buttons">
+		<a href="#" class="easyui-linkbutton" iconCls="icon-ok" onclick="save_boundCheJian()">保存</a>
+		<a href="#" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg_boundCheJian').dialog('close')">取消</a>
+	</div>
+</body>
+</html>

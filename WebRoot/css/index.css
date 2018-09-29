@@ -1,0 +1,61 @@
+@CHARSET "UTF-8";
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,canvas,details,embed,figure,figcaption,footer,header,hgroup,menu,nav,output,ruby,section,summary,time,mark,audio,video {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: "微软雅黑";
+	vertical-align: baseline;
+}
+/*wrapper*/
+.wrapper{
+	height: 100%;
+}
+/*header*/
+.header{
+	height: 8%;
+	min-height: 50px;
+	background-color: rgb(40, 55, 68);
+}
+.suojin{
+	line-height: 1.5;
+    display: inline-block;
+    vertical-align: middle;
+	margin-top: 10px;
+	margin-left: 12.5%;
+	height:29px;
+	width:29px;
+	background-image: url("../images/suojin1.jpg");
+	background-color: rgb(40, 55, 68);
+}
+.suojin:hover{background-image: url("../images/suojin2.jpg");}
+
+/*全屏*/
+.quanping{
+	margin-top: 10px;
+	margin-right: 3%;
+	height: 29px;
+	width: 29px;
+	float: right;
+	background-image: url("../images/fullscreen.png");
+	background-size:100%;
+}
+.quanping:hover{background-image: url("../images/fullscreen1.png");}
+
+/*menu*/
+.menu{
+	float: left;
+	background-color: rgb(57, 67, 92);
+	height:92%;
+	width:15%;
+	color: rgb(249, 249, 249);
+	
+}
+/*显示区*/
+.right{
+	
+	background-color: red;
+	height: 92%;
+	width: auto;
+}

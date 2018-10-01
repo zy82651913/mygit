@@ -25,10 +25,10 @@
 	    		    return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);  
 	    		}
 		    	$("#err").hide();//隐藏错误信息lable
-		    	$("#banbao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
+		    	$("#banbao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
 				$('#banci').combobox({//班次组合框事件
 		    		onLoadSuccess: function(none){
-		    			var mydate = new Date($.ajax({async: false}).getResponseHeader("Date"));//当前时间
+		    			var mydate = new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"));//当前时间
 		    			var hours = parseInt(mydate.getHours());//当前小时,转换为int
 		    			if (hours>=0 && hours<8) {//根据时间设置班次
 		    				$('#banci').combobox('setValue', '1');

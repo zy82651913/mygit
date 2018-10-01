@@ -32,7 +32,7 @@
     		        return new Date();  
     		    }  
     		}
-    	var dq_date = myformatter(new Date($.ajax({async: false}).getResponseHeader("Date")));//获得服务器时间
+    	var dq_date = myformatter(new Date($.ajax({async: false, cache: false}).getResponseHeader("Date")));//获得服务器时间
     	$("#sjlr_datebox").datebox("setValue",dq_date);//日期控件默认服务器当前日期
 	})
 	

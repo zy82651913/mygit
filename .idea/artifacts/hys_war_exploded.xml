@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="exploded-war" name="hys:war exploded">
-    <output-path>E:/Tomcat 8.0/webapps/hys</output-path>
+    <output-path>D:/Tomcat 8.0/webapps/hys</output-path>
     <root id="root">
       <element id="directory" name="WEB-INF">
         <element id="directory" name="classes">

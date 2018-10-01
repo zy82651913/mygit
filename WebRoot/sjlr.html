@@ -90,6 +90,7 @@
 					} else {//液相
 						sc_datagrid();
 					}
+                    sjdb_date_bc();
     			}
 			}
     	});
@@ -187,13 +188,15 @@
 					dd = date.getDate();
 					dataSrt = mm + "-"+ dd + "-" + bc;
 					$('#zhbc_tt').textbox('setValue', dataSrt);
+                    sjdb_date_bc();
 					sc_datagrid();
 				}
     		}
     	});
     	//$("#sjlr_datebox").datebox("setValue",myformatter(new Date()));//系统时间
     	$("#sjlr_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
-    	$('#ss').textbox('setValue', new Date().getHours()+':00');//设置时间微调器为当前时间
+        sjdb_date_bc();
+		$('#ss').textbox('setValue', new Date().getHours()+':00');//设置时间微调器为当前时间
 		$("#tree_xmlb").tree({//项目列表
 			url:"ServletXMLB_Tree",
 			onLoadSuccess: function () {$(this).tree('collapseAll')},//加载完毕后关闭所有节点
@@ -212,6 +215,7 @@
 					$('#banci').combobox('setValue', '3');
 				}
     			jiazai_dg(node);
+                sjdb_date_bc();
 			}
 		});
     	function jiazai_dg(node){//加载表格数据
@@ -266,7 +270,7 @@
 						sjdb_dg_(xm_id,hysj_date,hy_bc);
 					}
 				});
-				sjdb_date_bc();
+				//sjdb_date_bc();
 			}else{
 				$("#tree_xmlb").tree('toggle',node.target),//打开节点
 				$("#sr_thead").empty();//点击的不是叶节点清除表头
@@ -631,7 +635,7 @@
 		} else {//如果项目类型为固相
 			$("#sczb_dg").datagrid('hideColumn','hysjd_time');
 		}
-  		sjdb_date_bc();
+  		//sjdb_date_bc();
   	}
   	function sjdb_date_bc(){//数据对比的日期，班次，datagrid初始化
   		function myformatter(date){//格式化日期格式yyyy-mm-dd
@@ -640,36 +644,66 @@
     		    var d = date.getDate();  
     		    return y+'-'+(m<10?('0'+m):m)+'-'+(d<10?('0'+d):d);  
     		}
-  		var none = $("#tree_xmlb").tree('getSelected');
-  		var xmclass = none.xmclass;
-  		var xm_id = none.id;
-  		var hysj_date = $('#sjlr_datebox').datebox('getValue');
-  		var hy_bc = $('#banci').combobox('getValue');
-  		hysj_date = new Date(Date.parse(hysj_date.replace(/-/g, "/")));//字符串转为日期格式
-  		var yy = hysj_date.getYear();
-		var mm = hysj_date.getMonth()+1;//获得当前选择的月份
-		var dd = hysj_date.getDate();//获得当前选择的日
-		if (hy_bc==1) {//项目班次减去滞后班次
-			hy_bc = 3;
-			hysj_date.setDate(dd-1);
-		} else {
-			hy_bc = hy_bc-1;
-		}
-		mm = hysj_date.getMonth()+1;
-		dd = hysj_date.getDate();
-		$('#sjdb_datebox').datebox({//数据对比日期更改后重新获取对比数据
-			onSelect: function(date){
-				var none = $("#tree_xmlb").tree('getSelected');
-		  		var xm_id = none.id;
-		  		var hysj_date = $('#sjdb_datebox').datebox('getValue');
-		  		var hy_bc = $('#sjdb_banci').combobox('getValue');
-				sjdb_dg_(xm_id,hysj_date,hy_bc);
-		    }
-		});
-		$('#sjdb_datebox').datebox('setValue', myformatter(hysj_date));
-		$('#sjdb_banci').combobox('setValue', hy_bc);
-		hysj_date = hysj_date = $('#sjlr_datebox').datebox('getValue');
-  		sjdb_dg_(xm_id,hysj_date,hy_bc);
+
+  		try {//页面初始化时，没有选择项目时，只显示日期班次，不取数据
+            var none = $("#tree_xmlb").tree('getSelected');
+            var xmclass = none.xmclass;
+            var xm_id = none.id;
+            var hysj_date = $('#sjlr_datebox').datebox('getValue');
+            var hy_bc = $('#banci').combobox('getValue');
+            hysj_date = new Date(Date.parse(hysj_date.replace(/-/g, "/")));//字符串转为日期格式
+            var yy = hysj_date.getYear();
+            var mm = hysj_date.getMonth()+1;//获得当前选择的月份
+            var dd = hysj_date.getDate();//获得当前选择的日
+            if (hy_bc==1) {//项目班次减去滞后班次
+                hy_bc = 3;
+                hysj_date.setDate(dd-1);
+            } else {
+                hy_bc = hy_bc-1;
+            }
+            mm = hysj_date.getMonth()+1;
+            dd = hysj_date.getDate();
+            $('#sjdb_datebox').datebox({//数据对比日期更改后重新获取对比数据
+                onSelect: function(date){
+                    var none = $("#tree_xmlb").tree('getSelected');
+                    var xm_id = none.id;
+                    var hysj_date = $('#sjdb_datebox').datebox('getValue');
+                    var hy_bc = $('#sjdb_banci').combobox('getValue');
+                    sjdb_dg_(xm_id,hysj_date,hy_bc);
+                }
+            });
+            $('#sjdb_datebox').datebox('setValue', myformatter(hysj_date));
+            $('#sjdb_banci').combobox('setValue', hy_bc);
+            hysj_date = $('#sjdb_datebox').datebox('getValue');
+            sjdb_dg_(xm_id,hysj_date,hy_bc);
+        }catch (e) {
+            var hysj_date = $('#sjlr_datebox').datebox('getValue');
+            var hy_bc = $('#banci').combobox('getValue');
+            hysj_date = new Date(Date.parse(hysj_date.replace(/-/g, "/")));//字符串转为日期格式
+            var yy = hysj_date.getYear();
+            var mm = hysj_date.getMonth()+1;//获得当前选择的月份
+            var dd = hysj_date.getDate();//获得当前选择的日
+            if (hy_bc==1) {//项目班次减去滞后班次
+                hy_bc = 3;
+                hysj_date.setDate(dd-1);
+            } else {
+                hy_bc = hy_bc-1;
+            }
+            mm = hysj_date.getMonth()+1;
+            dd = hysj_date.getDate();
+            $('#sjdb_datebox').datebox({//数据对比日期更改后重新获取对比数据
+                onSelect: function(date){
+                    var none = $("#tree_xmlb").tree('getSelected');
+                    var xm_id = none.id;
+                    var hysj_date = $('#sjdb_datebox').datebox('getValue');
+                    var hy_bc = $('#sjdb_banci').combobox('getValue');
+                    sjdb_dg_(xm_id,hysj_date,hy_bc);
+                }
+            });
+            $('#sjdb_datebox').datebox('setValue', myformatter(hysj_date));
+            $('#sjdb_banci').combobox('setValue', hy_bc);
+        }
+
   	}
   	function sjdb_dg_(xm_id,hysj_date,hy_bc) {//数据对比表数据加载
   		var none = $("#tree_xmlb").tree('getSelected');

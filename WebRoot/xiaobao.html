@@ -26,7 +26,7 @@
 				        return jsonbl(data);
 				    },
 					onClick: function(node){//单击节点运行
-						$("#xiaobao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
+						$("#xiaobao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
 						if ($(this).tree('isLeaf',node.target)) {//判断是否选中的是叶子节点
 							var hysj_date = $("#xiaobao_datebox").datebox('getValue');
 							var hy_bc = $('#banci').combobox('getValue');
@@ -99,7 +99,7 @@
 				}
 				$('#banci').combobox({//班次组合框事件
 		    		onLoadSuccess: function(none){
-		    			var mydate = new Date($.ajax({async: false}).getResponseHeader("Date"));//当前时间
+		    			var mydate = new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"));//当前时间
 		    			var hours = parseInt(mydate.getHours());//当前小时,转换为int
 		    			if (hours>=0 && hours<8) {//根据时间设置班次
 		    				$('#banci').combobox('setValue', '1');
@@ -173,7 +173,7 @@
 		    			
 				    }
 				});
-				$("#xiaobao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
+				$("#xiaobao_datebox").datebox("setValue",myformatter(new Date($.ajax({async: false, cache: false}).getResponseHeader("Date"))));//日期控件默认服务器当前日期
 		    });
 		function xiaobao_dg(chejianid,hysj_date,hy_bc,jizhanid) {
 			var sj = {chejianid:chejianid, hysj_date:hysj_date, hy_bc:hy_bc};
